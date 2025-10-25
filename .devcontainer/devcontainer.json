@@ -1,0 +1,7 @@
+{
+  "name": "Reactive guest registration app",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "remoteUser": "node",
+  "forwardPorts": [3000],
+  "postCreateCommand": "npm install"
+}

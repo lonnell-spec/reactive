@@ -1,0 +1,24 @@
+/* Basic Tailwind styles to ensure the CSS is being processed */
+@layer base {
+  h1 {
+    @apply text-2xl font-bold;
+  }
+  h2 {
+    @apply text-xl font-bold;
+  }
+  h3 {
+    @apply text-lg font-semibold;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 bg-red-600 text-white rounded;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-red-800;
+  }
+}

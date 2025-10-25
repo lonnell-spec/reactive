@@ -1,5 +1,6 @@
 -- usage to schema
 grant usage on schema public to anon;
+grant usage on schema public to service_role;
 
 -- grant privileges
 grant insert on table public.guests to anon;
@@ -8,6 +9,10 @@ grant insert on table public.guest_children to anon;
 grant update (photo_path) on table public.guests to anon;
 grant update (photo_path) on table public.guest_children to anon;
 grant select (id) on table public.guest_children to anon;
+
+grant select on table public.guests to service_role;
+grant delete on table public.guests to service_role;
+grant delete on table public.guest_children to service_role;
 
 
 -- Enable RLS and define policies

@@ -39,6 +39,9 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 # App configuration
 APP_URL=http://localhost:3000
 
+# Environment mode (development or production)
+NODE_ENV=development
+
 # TextMagic API credentials (for SMS notifications)
 TEXTMAGIC_API_KEY=your-textmagic-api-key
 TEXTMAGIC_USERNAME=your-textmagic-username
@@ -97,6 +100,24 @@ The application uses Supabase for:
 ### TextMagic Integration
 
 TextMagic is used for sending SMS notifications to pre-approvers when a new guest registration is submitted.
+
+#### Development Mode
+
+When `NODE_ENV` is set to `development` in your `.env.local` file, the application will not actually send SMS messages. Instead, it will log the message content to the console. This is useful for development and testing without incurring SMS costs or sending real messages.
+
+Example console output in development mode:
+```
+========== TEXTMAGIC SMS (DEV MODE) ==========
+To: +1234567890
+Message:
+New guest registration requires pre-approval:
+Name: John Doe
+Visit Date: 10/25/2025
+Time: 10:30 AM
+Guests: 2
+Approve at: http://localhost:3000/admin
+==============================================
+```
 
 ### Transaction Handling
 

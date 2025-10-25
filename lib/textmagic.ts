@@ -8,6 +8,30 @@ interface TextMagicSendParams {
 
 export async function sendTextMagicSMS({ phone, message, from }: TextMagicSendParams) {
   try {
+    // Check if we're in development mode
+    if (process.env.NODE_ENV === 'development') {
+      // In development, just log the message and return success
+      console.log('\n========== TEXTMAGIC SMS (DEV MODE) ==========');
+      console.log(`To: ${phone}`);
+      if (from) console.log(`From: ${from}`);
+      console.log('Message:');
+      console.log(message);
+      console.log('==============================================\n');
+      
+      // Return mock success response
+      return { 
+        success: true, 
+        data: { 
+          id: 'dev-' + Date.now(), 
+          sessionId: 'dev-session',
+          bulkId: 'dev-bulk',
+          messageId: 'dev-msg-' + Math.random().toString(36).substring(2, 10),
+          href: '/api/v2/messages/dev'
+        } 
+      };
+    }
+    
+    // Production mode - continue with actual TextMagic API call
     const username = process.env.TEXTMAGIC_USERNAME;
     const apiKey = process.env.TEXTMAGIC_API_KEY;
     

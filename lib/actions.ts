@@ -344,7 +344,7 @@ export async function submitGuestForm(formData: FormData) {
     }
 
     // Step 5: Trigger pre-approval notification
-    // await sendPreApprovalNotification(guest.id);
+    await sendPreApprovalNotification(guest.id);
 
     // Revalidate the path to update UI
     revalidatePath('/');

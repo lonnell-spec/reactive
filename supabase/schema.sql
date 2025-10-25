@@ -50,7 +50,7 @@ create table if not exists public.guest_children (
   name text not null,
   dob date,
   allergies text,
-  photo_url text
+  photo_path text
 );
 
 create index if not exists idx_guest_children_guest_id on public.guest_children(guest_id);

@@ -52,11 +52,13 @@
             "recharts": "^2.15.2",
             "sonner": "^2.0.3",
             "tailwind-merge": "*",
-            "vaul": "^1.1.2"
+            "vaul": "^1.1.2",
+            "zod": "^4.1.12"
       },
       "devDependencies": {
             "@tailwindcss/postcss": "^4.1.16",
             "@types/node": "^20.10.0",
+            "@types/qrcode": "^1.5.6",
             "@types/react": "19.2.2",
             "@vitejs/plugin-react-swc": "^3.10.2",
             "autoprefixer": "^10.4.21",

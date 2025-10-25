@@ -15,6 +15,7 @@ import { Calendar, Clock, Users, Car, Camera, Heart, MessageSquare, Baby } from 
 import { AnimatedText } from './AnimatedText'
 import { AnimatedSection } from './AnimatedSection'
 import { FloatingElements } from './FloatingElements'
+import { submitGuestForm } from '@/lib/actions'
 
 interface ChildInfo {
   name: string
@@ -68,15 +69,50 @@ export function GuestForm() {
     setError('')
     
     try {
-      // Validate required fields
+      // Validate required fields on client side
       if (!firstName || !lastName || !email || !phone || !visitDate || !gatheringTime || !carType || !profilePicture) {
         throw new Error('Please fill in all required fields')
       }
 
-      // In a real implementation, we would send the form data to the server here
-      // For now, let's simulate a successful submission after a delay
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setSubmissionId('DEMO-' + Math.random().toString(36).substring(2, 10).toUpperCase())
+      // Create form data to send to the server
+      const formData = new FormData()
+      formData.append('firstName', firstName)
+      formData.append('lastName', lastName)
+      formData.append('email', email)
+      formData.append('phone', phone)
+      formData.append('visitDate', visitDate)
+      formData.append('gatheringTime', gatheringTime)
+      formData.append('totalGuests', totalGuests)
+      formData.append('hasChildrenForFormationKids', hasChildrenForFormationKids.toString())
+      formData.append('childrenInfo', JSON.stringify(childrenInfo))
+      formData.append('carType', carType)
+      formData.append('vehicleColor', vehicleColor)
+      formData.append('vehicleMake', vehicleMake)
+      formData.append('vehicleModel', vehicleModel)
+      formData.append('foodAllergies', foodAllergies)
+      formData.append('specialNeeds', specialNeeds)
+      formData.append('additionalNotes', additionalNotes)
+      
+      // Add profile picture
+      if (profilePicture) {
+        formData.append('profilePicture', profilePicture)
+      }
+
+      // Add child photos
+      childrenInfo.forEach((child, index) => {
+        if (child.photo) {
+          formData.append(`childPhoto_${index}`, child.photo)
+        }
+      })
+
+      // Submit the form using the server action
+      const result = await submitGuestForm(formData)
+
+      if (!result.success) {
+        throw new Error(result.message || 'Submission failed')
+      }
+
+      setSubmissionId(result.submissionId)
       setSuccess(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

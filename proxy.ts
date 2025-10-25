@@ -9,11 +9,7 @@ export async function proxy(req: NextRequest) {
   // Create a Supabase client configured to use cookies
   const supabase = createMiddlewareClient({ 
     req, 
-    res,
-    options: {
-      supabaseUrl: 'https://oigtjjfydtbbttxxvywb.supabase.co',
-      supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZ3RqamZ5ZHRiYnR0eHh2eXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwMDAxNzAsImV4cCI6MjA3NDU3NjE3MH0.MjrkBa6UzcpL1Ot9jAcdI5gqWh0zsMzSLqet08hMOFI'
-    }
+    res
   })
   
   // Refresh session if expired - required for Server Components

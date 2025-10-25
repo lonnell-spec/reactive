@@ -132,6 +132,19 @@ export async function submitGuestForm(formData: FormData) {
     // Parse children info (sent as JSON string)
     const childrenInfoStr = formData.get('childrenInfo') as string;
     const childrenInfo = childrenInfoStr ? JSON.parse(childrenInfoStr) : [];
+    
+    // Extract child photos directly from formData
+    // They'll be named like childPhoto_0, childPhoto_1, etc.
+    const childPhotos: Record<string, File> = {}; 
+    
+    // Use Array.from to convert iterator to array for TypeScript compatibility
+    Array.from(formData.entries()).forEach(([key, value]) => {
+      if (key.startsWith('childPhoto_') && value instanceof File) {
+        const index = key.split('_')[1];
+        childPhotos[index] = value;
+        console.log(`Found child photo for index ${index}:`, value.name);
+      }
+    });
 
     // Validate form data
     const guestData = {
@@ -176,14 +189,17 @@ export async function submitGuestForm(formData: FormData) {
 
     // Validate child photos if any
     if (parsedData.hasChildrenForFormationKids && parsedData.childrenInfo.length > 0) {
-      for (const child of parsedData.childrenInfo) {
-        if (child.photo instanceof File) {
-          if (!child.photo.type.startsWith('image/')) {
+      for (let i = 0; i < parsedData.childrenInfo.length; i++) {
+        const child = parsedData.childrenInfo[i];
+        const childPhoto = childPhotos[i.toString()];
+        
+        if (childPhoto) {
+          if (!childPhoto.type.startsWith('image/')) {
             throw new Error(`Child photo for ${child.name} must be an image`);
           }
           
           const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
-          if (child.photo.size > maxSizeInBytes) {
+          if (childPhoto.size > maxSizeInBytes) {
             throw new Error(`Child photo for ${child.name} must be less than 5MB`);
           }
         }
@@ -262,7 +278,10 @@ export async function submitGuestForm(formData: FormData) {
 
     // Step 3: Insert children if any using anon key
     if (parsedData.hasChildrenForFormationKids && parsedData.childrenInfo.length > 0) {
-      for (const child of parsedData.childrenInfo) {
+      for (let i = 0; i < parsedData.childrenInfo.length; i++) {
+        const child = parsedData.childrenInfo[i];
+        const childPhoto = childPhotos[i.toString()];
+        
         // Prepare child record
         const childRecord = {
           guest_id: guest.id,
@@ -287,19 +306,19 @@ export async function submitGuestForm(formData: FormData) {
         cleanup.childrenIds.push(childData.id);
 
         // Step 4: Upload child photo if available using anon key
-        if (child.photo instanceof File) {
+        if (childPhoto) {
           // Convert File to ArrayBuffer for upload
-          const arrayBuffer = await child.photo.arrayBuffer();
+          const arrayBuffer = await childPhoto.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
           
           // Use a well-defined path: guest/{guest_id}/child/{child_id}/{filename}
-          const filePath = `guest/${guest.id}/child/${childData.id}/${child.photo.name}`;
+          const filePath = `guest/${guest.id}/child/${childData.id}/${childPhoto.name}`;
           console.log('Uploading child photo to:', filePath);
           const { error: uploadError } = await supabaseAnon
             .storage
             .from('guest-photos')
             .upload(filePath, buffer, {
-              contentType: child.photo.type,
+              contentType: childPhoto.type,
             });
 
           if (uploadError) {
@@ -325,7 +344,7 @@ export async function submitGuestForm(formData: FormData) {
     }
 
     // Step 5: Trigger pre-approval notification
-    await sendPreApprovalNotification(guest.id);
+    // await sendPreApprovalNotification(guest.id);
 
     // Revalidate the path to update UI
     revalidatePath('/');

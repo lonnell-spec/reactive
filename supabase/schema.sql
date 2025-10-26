@@ -34,6 +34,7 @@ create table if not exists public.guests (
   qr_code text,
   code_word text,
   qr_expiry timestamptz,
+  credential_id uuid,
   pre_approved_by uuid,
   pre_approved_at timestamptz,
   pre_approval_denied_by uuid,

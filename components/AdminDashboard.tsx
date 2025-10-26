@@ -16,6 +16,7 @@ import Image from 'next/image'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { GuestStatus } from '@/lib/types'
 import { ensureUserRole } from '@/lib/auth-actions'
+import { notifyGuestOfPreApproval, notifyGuestOfPreApprovalDenial, notifyGuestOfApproval, notifyGuestOfDenial } from '@/lib/actions'
 // No test utils import needed
 
 interface AdminDashboardProps {
@@ -110,11 +111,11 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
         setUserRoles({ isPreApprover, isAdmin });
       }
       
-      // Load all guest submissions - RLS policies will handle access control
+      // Load pending guest submissions (pending_pre_approval and pending)
       await loadGuestSubmissions();
       
-      // Load completed submissions if needed
-      if (showCompleted) {
+      // Load completed submissions if user is admin or if showCompleted is true
+      if (isAdmin || showCompleted) {
         await loadCompletedSubmissions();
       } else {
         setCompletedSubmissions([]);
@@ -194,14 +195,15 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const loadGuestSubmissions = async () => {
     setLoading(true)
     try {
-      // Query Supabase for all guest submissions - RLS policies will handle access control
-      // Simple query - RLS policies will handle filtering based on user role
+      // Query Supabase for active guest submissions (pending_pre_approval and pending)
+      // Filter out completed statuses (approved, denied, pre_approval_denied)
       const { data, error: queryError } = await supabase
         .from('guests')
         .select(`
           *,
           guest_children (*)
         `)
+        .in('status', [GuestStatus.PENDING_PRE_APPROVAL, GuestStatus.PENDING])
         .order('created_at', { ascending: false });
 
       if (queryError) {
@@ -219,7 +221,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
       setGuestSubmissions(formattedSubmissions);
       
       if (formattedSubmissions.length === 0) {
-        setStatusMsg('No submissions found.');
+        setStatusMsg('No pending submissions found.');
       } else {
         setStatusMsg('');
       }
@@ -240,8 +242,8 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
       
       if (rpcError) throw rpcError
       
-      // Send SMS notification to pending approver (in production)
-      // await sendPreApprovedNotificationSMS(id)
+      // Send SMS notification to the guest
+      await notifyGuestOfPreApproval(id)
       
       // Close the active submission view
       setActiveSubmission(null)
@@ -265,8 +267,8 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
       
       if (rpcError) throw rpcError
       
-      // Send SMS notification (in production)
-      // await sendPreApprovalDenialSMS(id)
+      // Send SMS notification to the guest
+      await notifyGuestOfPreApprovalDenial(id)
       
       // Close the active submission view
       setActiveSubmission(null)
@@ -293,7 +295,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
         `)
         .in('status', [GuestStatus.APPROVED, GuestStatus.DENIED, GuestStatus.PRE_APPROVAL_DENIED])
         .order('updated_at', { ascending: false })
-        .limit(20); // Limit to avoid loading too many
+        .limit(50); // Increased limit to show more completed submissions
 
       if (queryError) {
         throw queryError;
@@ -362,6 +364,10 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
       const expiryDate = new Date()
       expiryDate.setDate(expiryDate.getDate() + 7)
       
+      // Generate a unique credential ID
+      const { data: credentialData } = await supabase.rpc('gen_random_uuid')
+      const credentialId = credentialData || crypto.randomUUID()
+      
       // Update the submission in Supabase
       const { error: updateError } = await supabase
         .from('guests')
@@ -370,6 +376,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
           qr_code: qrCodeValue,
           code_word: randomCodeWord,
           qr_expiry: expiryDate.toISOString(),
+          credential_id: credentialId,
           approved_by: user.id,
           approved_at: new Date().toISOString()
         })
@@ -377,8 +384,8 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
       
       if (updateError) throw updateError
       
-      // Send SMS notification (in production)
-      // await sendApprovalSMS(id)
+      // Send SMS notification with QR code link
+      await notifyGuestOfApproval(id)
       
       // Close the active submission view
       setActiveSubmission(null)
@@ -408,8 +415,8 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
       
       if (updateError) throw updateError
       
-      // Send SMS notification (in production)
-      // await sendDenialSMS(id)
+      // Send SMS notification to the guest
+      await notifyGuestOfDenial(id)
       
       // Close the active submission view
       setActiveSubmission(null)
@@ -951,11 +958,11 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                 )}
               </div>
               
-              {/* Completed Submissions (if enabled) */}
-              {showCompleted && completedSubmissions.length > 0 && (
+              {/* Completed Submissions (if enabled or admin) */}
+              {(showCompleted || userRoles.isAdmin) && completedSubmissions.length > 0 && (
                 <Card className="border-2 border-gray-200 shadow-md">
                   <CardHeader className="bg-gray-100">
-                    <CardTitle className="text-xl">Completed Requests</CardTitle>
+                    <CardTitle className="text-xl">Processed Guests (Approved/Denied)</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0 divide-y divide-gray-200">
                     {completedSubmissions.map(submission => (

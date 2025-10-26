@@ -2,7 +2,7 @@
 
 import { AdminLogin } from '@/components/AdminLogin'
 import { AdminDashboard } from '@/components/AdminDashboard'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -15,8 +15,15 @@ export default function AdminPage() {
   const supabase = createClientComponentClient()
 
   useEffect(() => {
+    // Flag to prevent multiple session checks
+    let isMounted = true;
+    console.log('Admin page effect running, loading state:', loading);
+    
     async function checkSession() {
       try {
+        if (!isMounted) return;
+        
+        console.log('Checking session...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError) {
@@ -31,20 +38,33 @@ export default function AdminPage() {
           // You could show a password reset form here
         }
         
-        setUser(session?.user || null)
+        if (isMounted) {
+          console.log('Setting user:', session?.user ? 'logged in' : 'not logged in');
+          setUser(session?.user || null)
+        }
       } catch (err) {
         console.error('Session check error:', err)
-        setError('Failed to authenticate. Please try again.')
+        if (isMounted) {
+          setError('Failed to authenticate. Please try again.')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          console.log('Setting loading to false');
+          setLoading(false)
+        }
       }
     }
 
     checkSession()
 
+    // Only listen for critical auth events, not every state change
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // Handle auth state changes
+        // Only respond to specific auth events
+        if (!isMounted) return;
+        
+        console.log('Auth event:', event);
+        
         if (event === 'SIGNED_IN') {
           setUser(session?.user || null)
         } else if (event === 'SIGNED_OUT') {
@@ -52,16 +72,16 @@ export default function AdminPage() {
         } else if (event === 'PASSWORD_RECOVERY') {
           // Handle password recovery
           router.push('/admin?reset=true')
-        } else if (event === 'USER_UPDATED') {
-          setUser(session?.user || null)
         }
+        // Ignore other events that might be triggered on focus
       }
     )
 
     return () => {
+      isMounted = false;
       authListener?.subscription.unsubscribe()
     }
-  }, [supabase, router, searchParams])
+  }, [supabase, router, searchParams]) // Remove user from dependencies
 
   const handleLogin = (_accessToken: string, user: any) => {
     setUser(user)

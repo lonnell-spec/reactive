@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from './ui/checkbox'
 import { Textarea } from './ui/textarea'
 import Image from 'next/image'
+import Link from 'next/link'
 import { motion } from 'motion/react'
-import { Calendar, Clock, Users, Car, Camera, Heart, MessageSquare, Baby } from 'lucide-react'
+import { Calendar, Clock, Users, Car, Camera, Heart, MessageSquare, Baby, Search } from 'lucide-react'
 import { AnimatedText } from './AnimatedText'
 import { AnimatedSection } from './AnimatedSection'
 import { FloatingElements } from './FloatingElements'
@@ -571,6 +572,13 @@ export function GuestForm() {
           <p className="text-lg text-red-600 mt-4 font-medium">
             Sharing this private link is prohibited and can prevent guests from being approved in the future.
           </p>
+          
+          <div className="mt-8 flex justify-center">
+            <Link href="/status" className="inline-flex items-center text-gray-500 hover:text-gray-700 text-sm transition-colors duration-200">
+              <Search className="w-3 h-3 mr-1" />
+              Check Registration Status
+            </Link>
+          </div>
         </AnimatedSection>
       </div>
     </div>

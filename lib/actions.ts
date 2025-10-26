@@ -428,6 +428,310 @@ Approve at: ${process.env.APP_URL}/admin
   }
 }
 
+/**
+ * Sends an SMS notification to a guest when their registration has been pre-approved
+ * Uses the template from NEW_WORKFLOW_SUMMARY.md Step 3A
+ */
+export async function notifyGuestOfPreApproval(guestId: string) {
+  try {
+    // Get the guest details from Supabase
+    const supabase = getSupabaseServiceClient();
+    
+    const { data: guest, error: fetchError } = await supabase
+      .from('guests')
+      .select('*')
+      .eq('id', guestId)
+      .single();
+    
+    if (fetchError || !guest) {
+      throw new Error(fetchError?.message || 'Guest not found');
+    }
+    
+    // Format the message according to the template in NEW_WORKFLOW_SUMMARY.md
+    const message = `
+✅ 2819 CHURCH Update
+
+Hello ${guest.first_name}! Your guest registration has been pre-approved.
+
+Your request is now being reviewed by our admin team. 
+You'll receive another notification once final approval is complete.
+
+Thank you for your patience!
+`;
+    
+    // Send the SMS using TextMagic
+    const { success, error } = await sendTextMagicSMS({
+      phone: guest.phone,
+      message: message,
+    });
+    
+    if (!success) {
+      console.warn(`Failed to send pre-approval SMS: ${error}`);
+      // Don't throw an error here, as we don't want to fail the whole process
+      // if the SMS notification fails
+    } else {
+      console.log(`Pre-approval notification sent to guest: ${guest.first_name} ${guest.last_name}`);
+    }
+    
+    return { success, error };
+  } catch (err) {
+    console.error('Error notifying guest of pre-approval:', err);
+    return { 
+      success: false, 
+      error: err instanceof Error ? err.message : 'Unknown error notifying guest of pre-approval' 
+    };
+  }
+}
+
+/**
+ * Sends an SMS notification to a guest when their registration has been approved
+ * Includes a link to view their QR code
+ */
+export async function notifyGuestOfApproval(guestId: string) {
+  try {
+    // Get the guest details from Supabase
+    const supabase = getSupabaseServiceClient();
+    
+    const { data: guest, error: fetchError } = await supabase
+      .from('guests')
+      .select('*')
+      .eq('id', guestId)
+      .single();
+    
+    if (fetchError || !guest) {
+      throw new Error(fetchError?.message || 'Guest not found');
+    }
+    
+    // Create the URL for the QR code using the credential_id
+    const qrCodeUrl = `${process.env.APP_URL}/guestcredentials?credential=${guest.credential_id}`;
+    
+    // Format the approval message with QR code link
+    const message = `
+✅ 2819 CHURCH - Registration Approved!
+
+Congratulations ${guest.first_name}! Your guest registration has been approved.
+
+View your digital pass here: ${qrCodeUrl}
+
+Your code word is: ${guest.code_word}
+
+Please have this ready when you arrive on ${new Date(guest.visit_date).toLocaleDateString()}.
+
+We look forward to seeing you!
+`;
+    
+    // Send the SMS using TextMagic
+    const { success, error } = await sendTextMagicSMS({
+      phone: guest.phone,
+      message: message,
+    });
+    
+    if (!success) {
+      console.warn(`Failed to send approval SMS: ${error}`);
+    } else {
+      console.log(`Approval notification sent to guest: ${guest.first_name} ${guest.last_name}`);
+    }
+    
+    return { success, error };
+  } catch (err) {
+    console.error('Error notifying guest of approval:', err);
+    return { 
+      success: false, 
+      error: err instanceof Error ? err.message : 'Unknown error notifying guest of approval' 
+    };
+  }
+}
+
+/**
+ * Sends an SMS notification to a guest when their registration has been denied at pre-approval stage
+ * Uses the template from NEW_WORKFLOW_SUMMARY.md Step 3B
+ */
+export async function notifyGuestOfPreApprovalDenial(guestId: string) {
+  try {
+    // Get the guest details from Supabase
+    const supabase = getSupabaseServiceClient();
+    
+    const { data: guest, error: fetchError } = await supabase
+      .from('guests')
+      .select('*')
+      .eq('id', guestId)
+      .single();
+    
+    if (fetchError || !guest) {
+      throw new Error(fetchError?.message || 'Guest not found');
+    }
+    
+    // Format the message according to the template in NEW_WORKFLOW_SUMMARY.md Step 3B
+    const message = `
+❌ 2819 CHURCH Update
+
+Dear ${guest.first_name}, we're unable to approve your guest registration at this time.
+
+If you have any questions, please contact our church office.
+
+Blessings,
+2819 CHURCH Team
+`;
+    
+    // Send the SMS using TextMagic
+    const { success, error } = await sendTextMagicSMS({
+      phone: guest.phone,
+      message: message,
+    });
+    
+    if (!success) {
+      console.warn(`Failed to send pre-approval denial SMS: ${error}`);
+    } else {
+      console.log(`Pre-approval denial notification sent to guest: ${guest.first_name} ${guest.last_name}`);
+    }
+    
+    return { success, error };
+  } catch (err) {
+    console.error('Error notifying guest of pre-approval denial:', err);
+    return { 
+      success: false, 
+      error: err instanceof Error ? err.message : 'Unknown error notifying guest of pre-approval denial' 
+    };
+  }
+}
+
+/**
+ * Sends an SMS notification to a guest when their registration has been denied
+ * Uses the same template as pre-approval denial from NEW_WORKFLOW_SUMMARY.md Step 3B
+ */
+export async function notifyGuestOfDenial(guestId: string) {
+  try {
+    // Get the guest details from Supabase
+    const supabase = getSupabaseServiceClient();
+    
+    const { data: guest, error: fetchError } = await supabase
+      .from('guests')
+      .select('*')
+      .eq('id', guestId)
+      .single();
+    
+    if (fetchError || !guest) {
+      throw new Error(fetchError?.message || 'Guest not found');
+    }
+    
+    // Format the message - using the same template as pre-approval denial
+    const message = `
+❌ 2819 CHURCH Update
+
+Dear ${guest.first_name}, we're unable to approve your guest registration at this time.
+
+If you have any questions, please contact our church office.
+
+Blessings,
+2819 CHURCH Team
+`;
+    
+    // Send the SMS using TextMagic
+    const { success, error } = await sendTextMagicSMS({
+      phone: guest.phone,
+      message: message,
+    });
+    
+    if (!success) {
+      console.warn(`Failed to send denial SMS: ${error}`);
+    } else {
+      console.log(`Denial notification sent to guest: ${guest.first_name} ${guest.last_name}`);
+    }
+    
+    return { success, error };
+  } catch (err) {
+    console.error('Error notifying guest of denial:', err);
+    return { 
+      success: false, 
+      error: err instanceof Error ? err.message : 'Unknown error notifying guest of denial' 
+    };
+  }
+}
+
+/**
+ * Retrieves guest credentials (QR code, code word, etc.) for display
+ * Uses the service role to ensure access regardless of authentication status
+ * Uses the credential_id field for secure access
+ */
+export async function getGuestCredentials(credentialId: string) {
+  try {
+    const supabase = getSupabaseServiceClient();
+    
+    // Find the guest by credential_id
+    const { data: guest, error: fetchError } = await supabase
+      .from('guests')
+      .select(`
+        id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        visit_date,
+        gathering_time,
+        total_guests,
+        qr_code,
+        code_word,
+        qr_expiry,
+        status
+      `)
+      .eq('credential_id', credentialId)
+      .single();
+    
+    if (fetchError) {
+      throw new Error('Failed to retrieve guest information');
+    }
+    
+    if (!guest) {
+      return {
+        success: false,
+        message: 'Guest credentials not found or invalid'
+      };
+    }
+    
+    // Check if QR code has expired
+    const now = new Date();
+    const expiryDate = new Date(guest.qr_expiry);
+    
+    if (now > expiryDate) {
+      return {
+        success: false,
+        message: 'Your guest pass has expired'
+      };
+    }
+    
+    // Check if guest is approved
+    if (guest.status !== GuestStatus.APPROVED) {
+      return {
+        success: false,
+        message: 'This guest registration is not approved'
+      };
+    }
+    
+    return {
+      success: true,
+      guest: {
+        id: guest.id,
+        firstName: guest.first_name,
+        lastName: guest.last_name,
+        email: guest.email,
+        phone: guest.phone,
+        visitDate: guest.visit_date,
+        gatheringTime: guest.gathering_time,
+        totalGuests: guest.total_guests,
+        qrCode: guest.qr_code,
+        codeWord: guest.code_word,
+        qrExpiry: guest.qr_expiry
+      }
+    };
+  } catch (error) {
+    console.error('Error retrieving guest credentials:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to retrieve guest credentials'
+    };
+  }
+}
+
 // Function to check guest status
 export async function checkGuestStatus(submissionId: string, phone: string) {
   try {

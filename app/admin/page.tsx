@@ -2,17 +2,41 @@
 
 import { AdminLogin } from '@/components/AdminLogin'
 import { AdminDashboard } from '@/components/AdminDashboard'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+
+// Separate component to handle URL parameters with Suspense
+function UrlParamsHandler({ onResetParam }: { onResetParam: (reset: boolean) => void }) {
+  // Import useSearchParams inside the component that's wrapped with Suspense
+  const { useSearchParams } = require('next/navigation')
+  const searchParams = useSearchParams()
+  
+  useEffect(() => {
+    const reset = searchParams.get('reset')
+    if (reset === 'true') {
+      onResetParam(true)
+    }
+  }, [searchParams, onResetParam])
+  
+  return null // This component doesn't render anything
+}
 
 export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isReset, setIsReset] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
   const supabase = createClientComponentClient()
+
+  const handleResetParam = (reset: boolean) => {
+    if (reset) {
+      setError(null)
+      setIsReset(true)
+      // You could show a password reset form here
+    }
+  }
 
   useEffect(() => {
     // Flag to prevent multiple session checks
@@ -28,14 +52,6 @@ export default function AdminPage() {
         
         if (sessionError) {
           throw sessionError
-        }
-        
-        // Check for password reset from URL params
-        const reset = searchParams.get('reset')
-        if (reset === 'true') {
-          // Handle password reset flow
-          setError(null)
-          // You could show a password reset form here
         }
         
         if (isMounted) {
@@ -81,7 +97,7 @@ export default function AdminPage() {
       isMounted = false;
       authListener?.subscription.unsubscribe()
     }
-  }, [supabase, router, searchParams]) // Remove user from dependencies
+  }, [supabase, router, loading])
 
   const handleLogin = (_accessToken: string, user: any) => {
     setUser(user)
@@ -92,39 +108,40 @@ export default function AdminPage() {
     setUser(null)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4 animate-spin"></div>
-          <p className="text-xl">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-  
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6 bg-red-50 border-2 border-red-600 rounded-lg">
-          <p className="text-xl text-red-800 mb-4">{error}</p>
-          <button 
-            onClick={() => {
-              setError(null)
-              router.refresh()
-            }}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    )
-  }
+  return (
+    <>
+      {/* Wrap the component that uses useSearchParams in Suspense */}
+      <Suspense fallback={null}>
+        <UrlParamsHandler onResetParam={handleResetParam} />
+      </Suspense>
 
-  return user ? (
-    <AdminDashboard user={user} onLogout={handleLogout} />
-  ) : (
-    <AdminLogin onLogin={handleLogin} />
+      {loading ? (
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4 animate-spin"></div>
+            <p className="text-xl">Loading...</p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto p-6 bg-red-50 border-2 border-red-600 rounded-lg">
+            <p className="text-xl text-red-800 mb-4">{error}</p>
+            <button 
+              onClick={() => {
+                setError(null)
+                router.refresh()
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      ) : user ? (
+        <AdminDashboard user={user} onLogout={handleLogout} />
+      ) : (
+        <AdminLogin onLogin={handleLogin} />
+      )}
+    </>
   )
 }

@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import React, { useState, useEffect, Suspense } from 'react'
 import { QRCodeDisplay } from '@/components/QRCodeDisplay'
 import { getGuestCredentials } from '@/lib/actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,15 +12,37 @@ import { AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
-export default function GuestCredentialsPage() {
+// Separate component to handle URL parameters with Suspense
+function CredentialParamsHandler({ onCredentialParam }: { onCredentialParam: (credential: string | null) => void }) {
+  // Import useSearchParams inside the component that's wrapped with Suspense
+  const { useSearchParams } = require('next/navigation')
   const searchParams = useSearchParams()
-  const credentialId = searchParams.get('credential')
   
+  useEffect(() => {
+    const credential = searchParams.get('credential')
+    onCredentialParam(credential)
+  }, [searchParams, onCredentialParam])
+  
+  return null // This component doesn't render anything
+}
+
+export default function GuestCredentialsPage() {
+  const [credentialId, setCredentialId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [guestData, setGuestData] = useState<any>(null)
+  const [paramsLoaded, setParamsLoaded] = useState(false)
+  
+  // Callback to handle the credential param from the Suspense-wrapped component
+  const handleCredentialParam = (credential: string | null) => {
+    setCredentialId(credential)
+    setParamsLoaded(true)
+  }
   
   useEffect(() => {
+    // Only fetch data once we have the credential ID from URL params
+    if (!paramsLoaded) return
+    
     async function fetchGuestCredentials() {
       if (!credentialId) {
         setError('Missing credential parameter')
@@ -46,10 +67,15 @@ export default function GuestCredentialsPage() {
     }
     
     fetchGuestCredentials()
-  }, [credentialId])
+  }, [credentialId, paramsLoaded])
   
   return (
     <div className="min-h-screen bg-white py-12 px-4">
+      {/* Wrap the component that uses useSearchParams in Suspense */}
+      <Suspense fallback={null}>
+        <CredentialParamsHandler onCredentialParam={handleCredentialParam} />
+      </Suspense>
+      
       <FloatingElements />
       
       <div className="max-w-3xl mx-auto">
@@ -71,7 +97,7 @@ export default function GuestCredentialsPage() {
         </AnimatedSection>
         
         {/* Loading State */}
-        {loading && (
+        {(loading || !paramsLoaded) && (
           <AnimatedSection>
             <Card className="border-2 border-gray-200 shadow-md">
               <CardContent className="p-8 flex justify-center items-center">
@@ -85,7 +111,7 @@ export default function GuestCredentialsPage() {
         )}
         
         {/* Error State */}
-        {!loading && error && (
+        {!loading && paramsLoaded && error && (
           <AnimatedSection>
             <Alert className="border-2 border-red-600 bg-red-50 mb-8">
               <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
@@ -106,7 +132,7 @@ export default function GuestCredentialsPage() {
         )}
         
         {/* QR Code Display */}
-        {!loading && !error && guestData && (
+        {!loading && paramsLoaded && !error && guestData && (
           <AnimatedSection>
             <Card className="border-2 border-black shadow-xl overflow-hidden">
               <CardHeader className="bg-black text-white">

@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, RefreshCw, Calendar, Phone, Mail } from 'lucide-react';
 import Image from 'next/image';
 import { GuestStatus } from '@/lib/types';
 import { motion } from 'motion/react';
@@ -233,6 +233,21 @@ export const PendingSection: React.FC<SectionProps> = ({
 };
 
 // Active Submission Detail Component
+interface ActiveSubmissionDetailProps {
+  activeSubmission: string | null;
+  pendingPreApprovalSubmissions: Submission[];
+  pendingSubmissions: Submission[];
+  handlePreApprove: (id: string) => Promise<void>;
+  handlePreApprovalDeny: (id: string) => Promise<void>;
+  handleApprove: (id: string) => Promise<void>;
+  handleDeny: (id: string) => Promise<void>;
+  actionLoading: string | null;
+  onClose: () => void;
+  formatDate: (dateString: string) => string;
+  getProfilePicUrl: (path: string) => string;
+  user: any; // Consider replacing 'any' with a more specific type if available
+}
+
 export const ActiveSubmissionDetail = ({
   activeSubmission,
   pendingPreApprovalSubmissions,
@@ -246,7 +261,7 @@ export const ActiveSubmissionDetail = ({
   formatDate,
   getProfilePicUrl,
   user,
-}) => {
+}: ActiveSubmissionDetailProps) => {
   // Combine both submission arrays to find the active one
   const allSubmissions = [...pendingPreApprovalSubmissions, ...pendingSubmissions];
   const submission = allSubmissions.find(sub => sub.id === activeSubmission);

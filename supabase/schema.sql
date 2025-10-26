@@ -47,9 +47,6 @@ create table if not exists public.guests (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists idx_guests_unique_daily
-on public.guests(lower(email), visit_date);
-
 drop trigger if exists trg_guests_updated_at on public.guests;
 create trigger trg_guests_updated_at
 before update on public.guests
@@ -68,3 +65,32 @@ create table if not exists public.guest_children (
 create index if not exists idx_guest_children_guest_id on public.guest_children(guest_id);
 
 
+-- Security definer function to pre-approve a guest. Has to be done this way to avoid RLS conflicts.
+create or replace function public.pre_approve_guest(
+  guest_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  is_pre_approver boolean;
+begin
+  -- First, confirm the user has the 'pre_approver' role
+  select (auth.jwt() -> 'app_metadata' ->> 'role') = 'pre_approver'
+  into is_pre_approver;
+
+  if is_pre_approver then
+    -- Now, perform the privileged update.
+    -- The update bypasses RLS because this function is a security definer.
+    update public.guests
+    set status = 'pending'
+    where id = guest_id and status = 'pending_pre_approval';
+  else
+    raise exception 'You do not have permission to pre-approve guests.';
+  end if;
+end;
+$$;
+
+grant execute on function public.pre_approve_guest(uuid) to authenticated;

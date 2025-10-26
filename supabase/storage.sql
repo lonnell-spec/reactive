@@ -16,12 +16,6 @@ on storage.objects for select
 to authenticated
 using (bucket_id = 'guest-photos');
 
--- Allow authenticated users to insert into the bucket
-create policy "Authenticated users can upload to guest-photos"
-on storage.objects for insert
-to authenticated
-with check (bucket_id = 'guest-photos');
-
 -- Allow anon users to upload to guest-photos (for guest registration)
 create policy "Anon users can upload to guest-photos"
 on storage.objects for insert

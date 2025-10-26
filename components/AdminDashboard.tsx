@@ -448,6 +448,8 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   };
 
   const handlePreApprove = async (id: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('session?.access_token pre-approve', session?.access_token);
     setActionLoading(id)
     try {
       // Update the submission in Supabase to PENDING status

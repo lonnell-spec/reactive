@@ -288,9 +288,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                     </div>
                     <div className="space-y-3">
                       <Label htmlFor="admin-code" className="text-xl flex items-center">
-                        {userRole === 'pre_approver' && 'Pre-Approver'}
-                        {userRole === 'pending_approver' && 'Approver'}
-                        {userRole === 'admin' && 'Admin'}
+                        {userRole === 'pre_approver' ? 'Pre-Approver' : 'Admin'}
                         {' Registration Code'}
                         <div className="ml-2 text-sm text-gray-500">(Required)</div>
                       </Label>
@@ -300,38 +298,27 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                         value={adminCode}
                         onChange={(e) => setAdminCode(e.target.value)}
                         required
-                        className={`border-2 ${userRole === 'pre_approver' ? 'focus:border-yellow-600' : userRole === 'pending_approver' ? 'focus:border-blue-600' : 'focus:border-red-600'} py-4`}
-                        placeholder={`Enter ${userRole === 'pre_approver' ? 'Pre-Approver' : userRole === 'pending_approver' ? 'Approver' : 'Admin'} code`}
+                        className={`border-2 ${userRole === 'pre_approver' ? 'focus:border-yellow-600' : 'focus:border-red-600'} py-4`}
+                        placeholder={`Enter ${userRole === 'pre_approver' ? 'Pre-Approver' : 'Admin'} code`}
                       />
                       <p className="text-sm text-gray-500">
                         <AlertCircle className="inline-block w-4 h-4 mr-1" />
-                        This code is required to register as a{userRole === 'pre_approver' ? ' Pre-Approver' : userRole === 'pending_approver' ? 'n Approver' : 'n Admin'}.
+                        This code is required to register as a{userRole === 'pre_approver' ? ' Pre-Approver' : 'n Admin'}.
                       </p>
                     </div>
                     <div className="space-y-3">
                       <Label htmlFor="user-role" className="text-xl">User Role</Label>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <Button
                           type="button"
                           variant={userRole === 'pre_approver' ? 'default' : 'outline'}
                           className={userRole === 'pre_approver' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'border-yellow-600 text-yellow-600'}
                           onClick={() => {
                             setUserRole('pre_approver')
-                            setAdminCode('') // Clear code when changing roles
+                            // Don't clear the code when changing roles
                           }}
                         >
                           Pre-Approver
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={userRole === 'pending_approver' ? 'default' : 'outline'}
-                          className={userRole === 'pending_approver' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border-blue-600 text-blue-600'}
-                          onClick={() => {
-                            setUserRole('pending_approver')
-                            setAdminCode('') // Clear code when changing roles
-                          }}
-                        >
-                          Approver
                         </Button>
                         <Button
                           type="button"
@@ -339,19 +326,18 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                           className={userRole === 'admin' ? 'bg-red-600 hover:bg-red-700 text-white' : 'border-red-600 text-red-600'}
                           onClick={() => {
                             setUserRole('admin')
-                            setAdminCode('') // Clear code when changing roles
+                            // Don't clear the code when changing roles
                           }}
                         >
                           Admin
                         </Button>
                       </div>
-                      <div className={`p-4 rounded-md ${userRole === 'pre_approver' ? 'bg-yellow-50 border border-yellow-200' : userRole === 'pending_approver' ? 'bg-blue-50 border border-blue-200' : 'bg-red-50 border border-red-200'}`}>
-                        <h4 className={`font-medium mb-1 ${userRole === 'pre_approver' ? 'text-yellow-800' : userRole === 'pending_approver' ? 'text-blue-800' : 'text-red-800'}`}>
-                          {userRole === 'pre_approver' ? 'Pre-Approver' : userRole === 'pending_approver' ? 'Approver' : 'Admin'} Role
+                      <div className={`p-4 rounded-md ${userRole === 'pre_approver' ? 'bg-yellow-50 border border-yellow-200' : 'bg-red-50 border border-red-200'}`}>
+                        <h4 className={`font-medium mb-1 ${userRole === 'pre_approver' ? 'text-yellow-800' : 'text-red-800'}`}>
+                          {userRole === 'pre_approver' ? 'Pre-Approver' : 'Admin'} Role
                         </h4>
                         <p className="text-sm text-gray-700">
                           {userRole === 'pre_approver' && 'Pre-Approvers can review and pre-approve new guest registrations. You will only see pending pre-approval submissions.'}
-                          {userRole === 'pending_approver' && 'Approvers can approve or deny pre-approved guest registrations. You will only see pending submissions that have been pre-approved.'}
                           {userRole === 'admin' && 'Admins have full access to all guest registrations and approvals. You will see all submissions regardless of status.'}
                         </p>
                       </div>

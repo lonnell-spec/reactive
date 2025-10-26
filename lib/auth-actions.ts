@@ -22,13 +22,10 @@ export async function validateRegistrationCode(
 ): Promise<ValidationResponse> {
   // Get the appropriate registration code from environment variables
   let validCode = '';
-  
+  console.log('selectedRole', selectedRole);
   switch (selectedRole) {
     case 'pre_approver':
       validCode = process.env.PRE_APPROVER_REGISTRATION_CODE || '';
-      break;
-    case 'pending_approver':
-      validCode = process.env.APPROVER_REGISTRATION_CODE || '';
       break;
     case 'admin':
       validCode = process.env.ADMIN_REGISTRATION_CODE || '';
@@ -186,8 +183,6 @@ function getRoleName(role: string): string {
   switch (role) {
     case 'pre_approver':
       return 'Pre-Approver';
-    case 'pending_approver':
-      return 'Approver';
     case 'admin':
       return 'Admin';
     default:

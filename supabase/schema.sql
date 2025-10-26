@@ -76,16 +76,23 @@ set search_path = ''
 as $$
 declare
   is_pre_approver boolean;
+  admin_id uuid;
 begin
   -- First, confirm the user has the 'pre_approver' role
-  select (auth.jwt() -> 'app_metadata' ->> 'role') = 'pre_approver'
+  select (auth.jwt() -> 'app_metadata' ->> 'role') = 'pre_approver' or (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
   into is_pre_approver;
+  
+  -- Get the current user's ID
+  admin_id := auth.uid();
 
   if is_pre_approver then
     -- Now, perform the privileged update.
     -- The update bypasses RLS because this function is a security definer.
     update public.guests
-    set status = 'pending'
+    set 
+      status = 'pending',
+      pre_approved_by = admin_id,
+      pre_approved_at = now()
     where id = guest_id and status = 'pending_pre_approval';
   else
     raise exception 'You do not have permission to pre-approve guests.';
@@ -94,3 +101,40 @@ end;
 $$;
 
 grant execute on function public.pre_approve_guest(uuid) to authenticated;
+
+-- Security definer function to deny pre-approval for a guest
+create or replace function public.deny_pre_approve_guest(
+  guest_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  is_pre_approver boolean;
+  admin_id uuid;
+begin
+  -- First, confirm the user has the 'pre_approver' role
+  select (auth.jwt() -> 'app_metadata' ->> 'role') = 'pre_approver' or (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  into is_pre_approver;
+  
+  -- Get the current user's ID
+  admin_id := auth.uid();
+
+  if is_pre_approver then
+    -- Now, perform the privileged update.
+    -- The update bypasses RLS because this function is a security definer.
+    update public.guests
+    set 
+      status = 'pre_approval_denied',
+      pre_approval_denied_by = admin_id,
+      pre_approval_denied_at = now()
+    where id = guest_id and status = 'pending_pre_approval';
+  else
+    raise exception 'You do not have permission to deny pre-approval for guests.';
+  end if;
+end;
+$$;
+
+grant execute on function public.deny_pre_approve_guest(uuid) to authenticated;

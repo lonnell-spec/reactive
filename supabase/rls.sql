@@ -14,6 +14,7 @@ grant select (id) on table public.guest_children to anon;
 -- grant privileges for authenticated users (admin dashboard)
 grant select on table public.guests to authenticated;
 grant select on table public.guest_children to authenticated;
+grant update (status,qr_code,code_word,qr_expiry,approved_by,approved_at) on table public.guests to authenticated;
 
 -- grant privileges for service role (system operations)
 grant select on table public.guests to service_role;

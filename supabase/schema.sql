@@ -31,6 +31,18 @@ create table if not exists public.guests (
   special_needs text,
   additional_notes text,
   photo_path text,
+  qr_code text,
+  code_word text,
+  qr_expiry timestamptz,
+  pre_approved_by uuid,
+  pre_approved_at timestamptz,
+  pre_approval_denied_by uuid,
+  pre_approval_denied_at timestamptz,
+  approved_by uuid,
+  approved_at timestamptz,
+  denied_by uuid,
+  denied_at timestamptz,
+  last_modified_admin_name text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

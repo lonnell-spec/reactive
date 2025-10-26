@@ -2,7 +2,7 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function proxy(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const pathname = req.nextUrl.pathname
 
@@ -18,11 +18,8 @@ export async function proxy(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // If accessing admin routes and not authenticated, redirect to login
-  if (pathname.startsWith('/admin') && !session) {
-    const redirectUrl = new URL('/', req.url)
-    return NextResponse.redirect(redirectUrl)
-  }
+  // We don't need to redirect from /admin since the page itself handles authentication
+  // The admin page will show the login screen if the user is not authenticated
 
   return res
 }

@@ -2,11 +2,34 @@
 -- Note: Keep bucket private; uploads should be done server-side
 
 insert into storage.buckets (id, name, public)
-select 'guest-photos', 'guest-photos', false
-where not exists (select 1 from storage.buckets where id = 'guest-photos');
+values ('guest-photos', 'guest-photos', false)
+on conflict (id) do nothing;
 
 -- Policies
 grant usage on schema storage to anon;
-create policy "anon can uplad to guest-photos" on storage.objects for insert to anon with check (bucket_id = 'guest-photos');
+grant usage on schema storage to authenticated;
+grant usage on schema storage to service_role;
 
+-- Allow authenticated users to read from the bucket
+create policy "Authenticated users can read from guest-photos"
+on storage.objects for select
+to authenticated
+using (bucket_id = 'guest-photos');
 
+-- Allow authenticated users to insert into the bucket
+create policy "Authenticated users can upload to guest-photos"
+on storage.objects for insert
+to authenticated
+with check (bucket_id = 'guest-photos');
+
+-- Allow anon users to upload to guest-photos (for guest registration)
+create policy "Anon users can upload to guest-photos"
+on storage.objects for insert
+to anon
+with check (bucket_id = 'guest-photos');
+
+-- Allow service role to delete from guest-photos (for rollbacks)
+create policy "Service role can delete from guest-photos"
+on storage.objects for delete
+to service_role
+using (bucket_id = 'guest-photos');

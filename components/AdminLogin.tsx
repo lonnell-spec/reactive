@@ -6,14 +6,15 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Alert, AlertDescription } from './ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
-import { UserPlus, LogIn, Settings } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { UserPlus, LogIn, Settings, AlertCircle, CheckCircle } from 'lucide-react'
 import { AnimatedText } from './AnimatedText'
 import { AnimatedSection } from './AnimatedSection'
 import { FloatingElements } from './FloatingElements'
 import { motion } from 'motion/react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Image from 'next/image'
+import { validateRegistrationCode, createUserWithRole } from '@/lib/auth-actions'
 
 interface AdminLoginProps {
   onLogin: (accessToken: string, user: any) => void
@@ -30,6 +31,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [adminCode, setAdminCode] = useState('')
+  const [userRole, setUserRole] = useState('admin')
 
   const supabase = createClientComponentClient()
 
@@ -84,26 +86,27 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         throw new Error('Password must be at least 6 characters')
       }
       
-      // Verify admin code (in production this would be more secure)
-      if (adminCode !== 'CHURCH-ADMIN-2819') {
-        throw new Error('Invalid admin code')
+      // Verify the registration code for the selected role using server action
+      const validationResult = await validateRegistrationCode(adminCode, userRole)
+      
+      if (!validationResult.isValid) {
+        throw new Error(validationResult.message)
       }
 
-      // Create user account
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            role: 'admin'
-          }
-        }
-      })
+      // Create user account using server action
+      const createResult = await createUserWithRole(email, password, userRole)
       
-      if (signUpError) throw signUpError
+      if (!createResult.success) {
+        throw new Error(createResult.message)
+      }
       
       setMessage('Account created successfully! Please sign in.')
       setActiveTab('sign-in')
+      
+      // Reset form
+      setAdminCode('')
+      setPassword('')
+      setConfirmPassword('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed')
       console.error('Registration error:', err)
@@ -173,9 +176,15 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         {(error || message) && (
           <AnimatedSection className="mb-8">
             <Alert className={`border-2 ${error ? 'border-red-600 bg-red-50' : 'border-green-600 bg-green-50'}`}>
-              <AlertDescription className={`${error ? 'text-red-800' : 'text-green-800'} text-xl`}>
-                {error || message}
-              </AlertDescription>
+              <div className="flex items-start">
+                {error ? 
+                  <AlertCircle className="w-6 h-6 mr-3 text-red-600 flex-shrink-0 mt-1" /> : 
+                  <CheckCircle className="w-6 h-6 mr-3 text-green-600 flex-shrink-0 mt-1" />
+                }
+                <AlertDescription className={`${error ? 'text-red-800' : 'text-green-800'} text-xl`}>
+                  {error || message}
+                </AlertDescription>
+              </div>
             </Alert>
           </AnimatedSection>
         )}
@@ -278,15 +287,74 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                       />
                     </div>
                     <div className="space-y-3">
-                      <Label htmlFor="admin-code" className="text-xl">Admin Registration Code</Label>
+                      <Label htmlFor="admin-code" className="text-xl flex items-center">
+                        {userRole === 'pre_approver' && 'Pre-Approver'}
+                        {userRole === 'pending_approver' && 'Approver'}
+                        {userRole === 'admin' && 'Admin'}
+                        {' Registration Code'}
+                        <div className="ml-2 text-sm text-gray-500">(Required)</div>
+                      </Label>
                       <Input
                         id="admin-code"
                         type="text"
                         value={adminCode}
                         onChange={(e) => setAdminCode(e.target.value)}
                         required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
+                        className={`border-2 ${userRole === 'pre_approver' ? 'focus:border-yellow-600' : userRole === 'pending_approver' ? 'focus:border-blue-600' : 'focus:border-red-600'} py-4`}
+                        placeholder={`Enter ${userRole === 'pre_approver' ? 'Pre-Approver' : userRole === 'pending_approver' ? 'Approver' : 'Admin'} code`}
                       />
+                      <p className="text-sm text-gray-500">
+                        <AlertCircle className="inline-block w-4 h-4 mr-1" />
+                        This code is required to register as a{userRole === 'pre_approver' ? ' Pre-Approver' : userRole === 'pending_approver' ? 'n Approver' : 'n Admin'}.
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="user-role" className="text-xl">User Role</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <Button
+                          type="button"
+                          variant={userRole === 'pre_approver' ? 'default' : 'outline'}
+                          className={userRole === 'pre_approver' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'border-yellow-600 text-yellow-600'}
+                          onClick={() => {
+                            setUserRole('pre_approver')
+                            setAdminCode('') // Clear code when changing roles
+                          }}
+                        >
+                          Pre-Approver
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={userRole === 'pending_approver' ? 'default' : 'outline'}
+                          className={userRole === 'pending_approver' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border-blue-600 text-blue-600'}
+                          onClick={() => {
+                            setUserRole('pending_approver')
+                            setAdminCode('') // Clear code when changing roles
+                          }}
+                        >
+                          Approver
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={userRole === 'admin' ? 'default' : 'outline'}
+                          className={userRole === 'admin' ? 'bg-red-600 hover:bg-red-700 text-white' : 'border-red-600 text-red-600'}
+                          onClick={() => {
+                            setUserRole('admin')
+                            setAdminCode('') // Clear code when changing roles
+                          }}
+                        >
+                          Admin
+                        </Button>
+                      </div>
+                      <div className={`p-4 rounded-md ${userRole === 'pre_approver' ? 'bg-yellow-50 border border-yellow-200' : userRole === 'pending_approver' ? 'bg-blue-50 border border-blue-200' : 'bg-red-50 border border-red-200'}`}>
+                        <h4 className={`font-medium mb-1 ${userRole === 'pre_approver' ? 'text-yellow-800' : userRole === 'pending_approver' ? 'text-blue-800' : 'text-red-800'}`}>
+                          {userRole === 'pre_approver' ? 'Pre-Approver' : userRole === 'pending_approver' ? 'Approver' : 'Admin'} Role
+                        </h4>
+                        <p className="text-sm text-gray-700">
+                          {userRole === 'pre_approver' && 'Pre-Approvers can review and pre-approve new guest registrations. You will only see pending pre-approval submissions.'}
+                          {userRole === 'pending_approver' && 'Approvers can approve or deny pre-approved guest registrations. You will only see pending submissions that have been pre-approved.'}
+                          {userRole === 'admin' && 'Admins have full access to all guest registrations and approvals. You will see all submissions regardless of status.'}
+                        </p>
+                      </div>
                     </div>
                     <Button 
                       type="submit" 
@@ -336,6 +404,10 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         <AnimatedSection delay={0.4} className="text-center mt-8">
           <p className="text-gray-500">
             For assistance, please contact system administrator
+          </p>
+          <p className="text-sm text-gray-400 mt-2">
+            Pre-Approvers can only see pending pre-approval guests.<br />
+            Approvers can only see pre-approved guests awaiting final approval.
           </p>
         </AnimatedSection>
       </div>

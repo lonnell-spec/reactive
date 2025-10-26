@@ -6,7 +6,8 @@ This is a Next.js application for Reactive Church Guest Registration. The applic
 
 - Guest registration form with photo upload
 - Child registration with photo upload
-- Admin dashboard for managing registrations
+- Two-step approval workflow (pre-approval and final approval)
+- Role-based admin dashboard for managing registrations
 - SMS notifications for pre-approval
 - Status check for guests to see their registration status
 - QR code generation for approved guests
@@ -57,6 +58,7 @@ PRE_APPROVER_PHONE=+1234567890
    - `schema.sql` - Creates the database tables
    - `rls.sql` - Sets up Row Level Security policies
    - `storage.sql` - Creates the storage buckets for photos
+3. See the detailed `SUPABASE_SETUP_GUIDE.md` for complete instructions on setting up user roles and testing the workflow
 
 ### 5. Set up TextMagic (for SMS notifications)
 
@@ -96,6 +98,16 @@ The application uses Supabase for:
 - Database storage (guests and children)
 - File storage (profile pictures and child photos)
 - Authentication (admin login)
+- Role-based access control for the admin dashboard
+
+### Role-Based Access Control
+
+The Admin Dashboard implements role-based access control using Supabase JWT claims:
+- **`pre_approver`**: Can view and update `pending_pre_approval` guests
+- **`pending_approver`**: Can view and update `pending` guests
+- **`admin`**: Can view and update all guests
+
+Users can have multiple roles (e.g., `pre_approver,pending_approver`).
 
 ### TextMagic Integration
 
@@ -118,6 +130,14 @@ Guests: 2
 Approve at: http://localhost:3000/admin
 ==============================================
 ```
+
+### Pre-Approval Workflow
+
+The guest registration system implements a two-step approval process:
+
+1. **Pre-Approval**: When a guest submits a registration form, it's initially set to `pending_pre_approval` status. Pre-approvers receive an SMS notification and can review the submission in the admin dashboard. They can either pre-approve or deny the registration.
+
+2. **Final Approval**: If pre-approved, the registration status changes to `pending`. Pending approvers can then review the submission and either approve or deny it. If approved, a QR code and codeword are generated for the guest.
 
 ### Transaction Handling
 

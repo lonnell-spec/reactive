@@ -1,11 +1,49 @@
 import { z } from 'zod';
 
+// File validation that works in both browser and Node environments
+export const fileValidation = z.custom<File | undefined>(
+  (val: unknown) => {
+    // In browser: check if it's a File instance
+    if (typeof File !== 'undefined' && val instanceof File) {
+      return true;
+    }
+    
+    // In Node/server: check if it has the necessary File-like properties
+    if (
+      val && 
+      typeof val === 'object' && 
+      'name' in val && 
+      'size' in val && 
+      'type' in val
+    ) {
+      return true;
+    }
+    
+    return false;
+  }, 
+  { message: 'Expected a file upload' }
+);
+
+// Image file validation with size and type checks
+export const imageFileValidation = fileValidation
+  .refine(file => file && file.size < 5 * 1024 * 1024, { 
+    message: 'File must be less than 5MB' 
+  })
+  .refine(file => file && file.type.startsWith('image/'), { 
+    message: 'File must be an image' 
+  });
+
 // Child information schema
 export const childInfoSchema = z.object({
   name: z.string().min(1, 'Child name is required'),
-  dob: z.string().optional(),
+  dob: z.string().min(1, 'Date of birth is required')
+    .refine(val => {
+      const date = new Date(val);
+      const now = new Date();
+      return date <= now;
+    }, { message: 'Date of birth cannot be in the future' }),
   allergies: z.string().optional(),
-  photo: z.any().optional() // We'll handle file validation separately
+  photo: imageFileValidation
 });
 
 export type ChildInfo = z.infer<typeof childInfoSchema>;
@@ -14,8 +52,9 @@ export type ChildInfo = z.infer<typeof childInfoSchema>;
 export const guestFormSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().min(10, 'Valid phone number is required'),
+  email: z.email('Invalid email address'),
+  phone: z.string()
+  .regex(/^\d{10}$/, 'Phone number must be exactly 10 digits'),
   visitDate: z.string().min(1, 'Visit date is required'),
   gatheringTime: z.string().min(1, 'Gathering time is required'),
   totalGuests: z.string().min(1, 'Number of guests is required'),
@@ -28,12 +67,12 @@ export const guestFormSchema = z.object({
   foodAllergies: z.string().optional(),
   specialNeeds: z.string().optional(),
   additionalNotes: z.string().optional(),
-  profilePicture: z.any() // We'll handle file validation separately
+  profilePicture: imageFileValidation
 });
 
 export type GuestFormData = z.infer<typeof guestFormSchema>;
 
-// Server-side file validation
+// Server-side file validation - kept for backward compatibility
 export const fileSchema = z.object({
   name: z.string(),
   size: z.number().positive(),

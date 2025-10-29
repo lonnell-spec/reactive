@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
+import { useForm, useFieldArray, Controller, SubmitHandler } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Card, CardContent, CardHeader } from './ui/card'
 import { Alert, AlertDescription } from './ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Checkbox } from './ui/checkbox'
@@ -12,18 +14,43 @@ import { Textarea } from './ui/textarea'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'motion/react'
-import { Calendar, Clock, Users, Car, Camera, Heart, MessageSquare, Baby, Search } from 'lucide-react'
+import { Calendar, Car, Heart, Baby, Search, AlertCircle } from 'lucide-react'
 import { AnimatedText } from './AnimatedText'
 import { AnimatedSection } from './AnimatedSection'
 import { FloatingElements } from './FloatingElements'
 import { submitGuestForm } from '@/lib/actions'
+import { guestFormSchema, GuestFormData } from '@/lib/types'
 
-interface ChildInfo {
-  name: string
-  dob: string
-  photo: File | null
-  allergies: string
-}
+// Form field error tooltip component with motion animations
+const FormFieldError = ({ message }: { message: string }) => {
+  return (
+    <motion.div 
+      className="absolute left-0 top-full w-full"
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2 }}
+      style={{ pointerEvents: 'none', marginTop: '5px' }}
+    >
+      <div className="relative flex justify-center">
+        <motion.div 
+          className="z-50 bg-white border border-orange-300 rounded-md px-3 py-2 shadow-md text-sm w-max max-w-[250px]"
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.1 }}
+          style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(255, 255, 255, 0.98)' }}
+        >
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-white border-l border-t border-orange-300 rotate-45" style={{ backgroundColor: 'rgba(255, 255, 255, 0.98)' }}></div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-orange-100 text-orange-500 flex-shrink-0">
+              <AlertCircle className="h-4 w-4" />
+            </div>
+            <span className="text-gray-700">{message}</span>
+          </div>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+};
 
 export function GuestForm() {
   const [loading, setLoading] = useState(false)
@@ -31,76 +58,92 @@ export function GuestForm() {
   const [error, setError] = useState('')
   const [submissionId, setSubmissionId] = useState('')
   
-  // Form state
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [visitDate, setVisitDate] = useState('')
-  const [gatheringTime, setGatheringTime] = useState('')
-  const [totalGuests, setTotalGuests] = useState('1')
-  const [hasChildrenForFormationKids, setHasChildrenForFormationKids] = useState(false)
-  const [childrenInfo, setChildrenInfo] = useState<ChildInfo[]>([])
-  const [carType, setCarType] = useState('')
-  const [vehicleColor, setVehicleColor] = useState('')
-  const [vehicleMake, setVehicleMake] = useState('')
-  const [vehicleModel, setVehicleModel] = useState('')
-  const [foodAllergies, setFoodAllergies] = useState('')
-  const [profilePicture, setProfilePicture] = useState<File | null>(null)
-  const [specialNeeds, setSpecialNeeds] = useState('')
-  const [additionalNotes, setAdditionalNotes] = useState('')
-
+  // Initialize React Hook Form with proper typing
+  const { 
+    register, 
+    control, 
+    handleSubmit, 
+    watch, 
+    formState: { errors, touchedFields }, 
+    setValue,
+    getValues
+  } = useForm({
+    resolver: zodResolver(guestFormSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      visitDate: '',
+      gatheringTime: '',
+      totalGuests: '1',
+      hasChildrenForFormationKids: false,
+      childrenInfo: [],
+      carType: '',
+      vehicleColor: '',
+      vehicleMake: '',
+      vehicleModel: '',
+      foodAllergies: '',
+      specialNeeds: '',
+      additionalNotes: ''
+    }
+  });
+  
+  // Use useFieldArray for dynamic children fields
+  const { fields, append: appendChild, remove: removeChild } = useFieldArray({
+    control,
+    name: "childrenInfo"
+  });
+  
+  // Watch for changes in hasChildrenForFormationKids
+  const hasChildren = watch('hasChildrenForFormationKids');
+  
+  // Helper functions for children management
   const addChild = () => {
-    setChildrenInfo([...childrenInfo, { name: '', dob: '', photo: null, allergies: '' }])
-  }
+    // Using null as a placeholder - the user will need to select a file
+    // The validation will catch this and show an error until a file is selected
+    appendChild({ name: '', dob: '', photo: undefined, allergies: '' });
+  };
 
-  const removeChild = (index: number) => {
-    setChildrenInfo(childrenInfo.filter((_, i) => i !== index))
-  }
-
-  const updateChild = (index: number, field: keyof ChildInfo, value: string | File | null) => {
-    const updated = [...childrenInfo]
-    updated[index] = { ...updated[index], [field]: value }
-    setChildrenInfo(updated)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Form submission handler using React Hook Form with explicit typing
+  const onSubmit: SubmitHandler<GuestFormData> = async (data) => {
     setLoading(true)
     setError('')
     
     try {
-      // Validate required fields on client side
-      if (!firstName || !lastName || !email || !phone || !visitDate || !gatheringTime || !carType || !profilePicture) {
-        throw new Error('Please fill in all required fields')
-      }
-
       // Create form data to send to the server
       const formData = new FormData()
-      formData.append('firstName', firstName)
-      formData.append('lastName', lastName)
-      formData.append('email', email)
-      formData.append('phone', phone)
-      formData.append('visitDate', visitDate)
-      formData.append('gatheringTime', gatheringTime)
-      formData.append('totalGuests', totalGuests)
-      formData.append('hasChildrenForFormationKids', hasChildrenForFormationKids.toString())
-      formData.append('childrenInfo', JSON.stringify(childrenInfo))
-      formData.append('carType', carType)
-      formData.append('vehicleColor', vehicleColor)
-      formData.append('vehicleMake', vehicleMake)
-      formData.append('vehicleModel', vehicleModel)
-      formData.append('foodAllergies', foodAllergies)
-      formData.append('specialNeeds', specialNeeds)
-      formData.append('additionalNotes', additionalNotes)
+      formData.append('firstName', data.firstName)
+      formData.append('lastName', data.lastName)
+      formData.append('email', data.email)
+      formData.append('phone', data.phone)
+      formData.append('visitDate', data.visitDate)
+      formData.append('gatheringTime', data.gatheringTime)
+      formData.append('totalGuests', data.totalGuests)
+      formData.append('hasChildrenForFormationKids', data.hasChildrenForFormationKids.toString())
       
-      // Add profile picture
-      if (profilePicture) {
-        formData.append('profilePicture', profilePicture)
-      }
+      // We need to stringify childrenInfo but exclude the photo files
+      // as they'll be appended separately to avoid JSON serialization issues
+      const childrenInfoWithoutPhotos = data.childrenInfo.map(child => ({
+        name: child.name,
+        dob: child.dob,
+        allergies: child.allergies || ''
+      }));
+      
+      formData.append('childrenInfo', JSON.stringify(childrenInfoWithoutPhotos))
+      formData.append('carType', data.carType)
+      formData.append('vehicleColor', data.vehicleColor || '')
+      formData.append('vehicleMake', data.vehicleMake || '')
+      formData.append('vehicleModel', data.vehicleModel || '')
+      formData.append('foodAllergies', data.foodAllergies || '')
+      formData.append('specialNeeds', data.specialNeeds || '')
+      formData.append('additionalNotes', data.additionalNotes || '')
+      
+      // Add profile picture - this is already validated by Zod
+      formData.append('profilePicture', data.profilePicture!)
 
       // Add child photos
-      childrenInfo.forEach((child, index) => {
+      data.childrenInfo.forEach((child, index) => {
         if (child.photo) {
           formData.append(`childPhoto_${index}`, child.photo)
         }
@@ -226,7 +269,7 @@ export function GuestForm() {
               />
             </CardHeader>
             <CardContent className="p-8">
-              <form onSubmit={handleSubmit} className="space-y-10">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
                 {/* Personal Information */}
                 <AnimatedSection delay={0.1} className="space-y-6">
                   <h3 className="text-3xl font-bold text-black border-b-2 border-red-600 pb-3">Personal Information</h3>
@@ -234,61 +277,78 @@ export function GuestForm() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
                       <Label htmlFor="firstName" className="text-xl">First Name *</Label>
-                      <Input
-                        id="firstName"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="firstName"
+                          {...register('firstName')}
+                          className={`border-2 ${errors.firstName ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                        />
+                        {errors.firstName && <FormFieldError message={errors.firstName.message || 'First name is required'} />}
+                      </div>
                     </div>
                     <div className="space-y-3">
                       <Label htmlFor="lastName" className="text-xl">Last Name *</Label>
-                      <Input
-                        id="lastName"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="lastName"
+                          {...register('lastName')}
+                          className={`border-2 ${errors.lastName ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                        />
+                        {errors.lastName && <FormFieldError message={errors.lastName.message || 'Last name is required'} />}
+                      </div>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
                       <Label htmlFor="email" className="text-xl">Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="email"
+                          type="email"
+                          {...register('email')}
+                          className={`border-2 ${errors.email ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                        />
+                        {errors.email && <FormFieldError message={errors.email.message || 'Valid email is required'} />}
+                      </div>
                     </div>
                     <div className="space-y-3">
                       <Label htmlFor="phone" className="text-xl">Phone Number *</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <div className="relative" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            {...register('phone')}
+                            className={`border-2 ${errors.phone ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4 w-full`}
+                          />
+                          {errors.phone && <FormFieldError message={errors.phone.message || 'Phone number must be exactly 10 digits'} />}
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
                   <div className="space-y-1">
                     <Label htmlFor="profilePicture" className="text-xl">Profile Picture *</Label>
-                    <Input
-                      id="profilePicture"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setProfilePicture(e.target.files?.[0] || null)}
-                      required
-                      className="border-2 border-gray-300 focus:border-red-600 h-auto py-3 px-3 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white file:text-sm file:font-medium hover:file:bg-red-700 file:cursor-pointer"
-                    />
+                    <div className="relative" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <Controller
+                          name="profilePicture"
+                          control={control}
+                          render={({ field: { onChange, value, ...field } }) => (
+                            <Input
+                              id="profilePicture"
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => onChange(e.target.files?.[0] || null)}
+                              className={`border-2 ${errors.profilePicture ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} h-auto py-3 px-3 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white file:text-sm file:font-medium hover:file:bg-red-700 file:cursor-pointer w-full`}
+                              {...field}
+                            />
+                          )}
+                        />
+                        {errors.profilePicture && <FormFieldError message={errors.profilePicture.message || 'Profile picture is required'} />}
+                      </div>
+                    </div>
                   </div>
                 </AnimatedSection>
 
@@ -302,53 +362,85 @@ export function GuestForm() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
                       <Label htmlFor="visitDate" className="text-xl">Visit Date *</Label>
-                      <Input
-                        id="visitDate"
-                        type="date"
-                        value={visitDate}
-                        onChange={(e) => setVisitDate(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-2 mr-6 w-auto max-w-[250px]"
-                      />
+                      <div className="relative" style={{ maxWidth: '250px' }}>
+                        <Input
+                          id="visitDate"
+                          type="date"
+                          {...register('visitDate')}
+                          className={`border-2 ${errors.visitDate ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-2 w-full`}
+                        />
+                        {errors.visitDate && <FormFieldError message={errors.visitDate.message || 'Visit date is required'} />}
+                      </div>
                     </div>
                     <div className="space-y-3">
                       <Label htmlFor="gatheringTime" className="text-xl">Gathering Time *</Label>
-                      <Select value={gatheringTime} onValueChange={setGatheringTime} required>
-                        <SelectTrigger className="border-2 border-gray-300 focus:border-red-600 py-4 text-xl">
-                          <SelectValue placeholder="Select time" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="08:00 AM" className="text-xl">08:00 AM</SelectItem>
-                          <SelectItem value="10:30 AM" className="text-xl">10:30 AM</SelectItem>
-                          <SelectItem value="01:00 PM" className="text-xl">01:00 PM</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="relative" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="relative" style={{ width: '100%' }}>
+                          <Controller
+                            name="gatheringTime"
+                            control={control}
+                            render={({ field }) => (
+                              <Select 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                              >
+                                <SelectTrigger 
+                                  className={`border-2 ${errors.gatheringTime ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4 text-xl`}
+                                >
+                                  <SelectValue placeholder="Select time" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="08:00 AM" className="text-xl">08:00 AM</SelectItem>
+                                  <SelectItem value="10:30 AM" className="text-xl">10:30 AM</SelectItem>
+                                  <SelectItem value="01:00 PM" className="text-xl">01:00 PM</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
+                          {errors.gatheringTime && <FormFieldError message={errors.gatheringTime.message || 'Gathering time is required'} />}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <Label htmlFor="totalGuests" className="text-xl">Total Number of Guests</Label>
-                    <Select value={totalGuests} onValueChange={setTotalGuests}>
-                      <SelectTrigger className="border-2 border-gray-300 focus:border-red-600 py-4 text-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1,2,3,4,5,6,7,8,9,10].map(num => (
-                          <SelectItem key={num} value={num.toString()} className="text-xl">{num}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Controller
+                      name="totalGuests"
+                      control={control}
+                      render={({ field }) => (
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <SelectTrigger className="border-2 border-gray-300 focus:border-red-600 py-4 text-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1,2,3,4,5,6,7,8,9,10].map(num => (
+                              <SelectItem key={num} value={num.toString()} className="text-xl">{num}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </div>
                 </AnimatedSection>
 
                 {/* Children Information */}
                 <AnimatedSection delay={0.3} className="space-y-6">
                   <div className="flex items-center space-x-4">
-                    <Checkbox
-                      id="hasChildren"
-                      checked={hasChildrenForFormationKids}
-                      onCheckedChange={(checked) => setHasChildrenForFormationKids(checked === true)}
-                      className="w-6 h-6"
+                    <Controller
+                      name="hasChildrenForFormationKids"
+                      control={control}
+                      render={({ field }) => (
+                        <Checkbox
+                          id="hasChildren"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="w-6 h-6"
+                        />
+                      )}
                     />
                     <Label htmlFor="hasChildren" className="text-2xl font-bold text-black flex items-center gap-3">
                       <Baby className="h-8 w-8 text-red-600" />
@@ -356,16 +448,16 @@ export function GuestForm() {
                     </Label>
                   </div>
 
-                  {hasChildrenForFormationKids && (
+                  {hasChildren && (
                     <motion.div 
                       className="space-y-6 pl-8 border-l-4 border-red-600"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       transition={{ duration: 0.5 }}
                     >
-                      {childrenInfo.map((child, index) => (
+                      {fields.map((field, index) => (
                         <motion.div 
-                          key={index} 
+                          key={field.id} 
                           className="p-6 bg-gray-50 rounded-lg border-2 border-gray-300 space-y-6"
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -386,37 +478,62 @@ export function GuestForm() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-3">
                               <Label className="text-xl">Child's Name *</Label>
-                              <Input
-                                placeholder="Child's full name"
-                                value={child.name}
-                                onChange={(e) => updateChild(index, 'name', e.target.value)}
-                                className="border-2 border-gray-300 focus:border-red-600 py-4"
-                              />
+                              <div className="relative" style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ position: 'relative', width: '100%' }}>
+                                  <Input
+                                  placeholder="Child's full name"
+                                  {...register(`childrenInfo.${index}.name`)}
+                                  className={`border-2 ${errors.childrenInfo?.[index]?.name ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                                />
+                                {errors.childrenInfo?.[index]?.name && (
+                                  <FormFieldError message={errors.childrenInfo[index].name?.message || 'Child name is required'} />
+                                )}
+                                </div>
+                              </div>
                             </div>
                             <div className="space-y-3">
                               <Label className="text-xl">Child's Date of Birth *</Label>
-                              <Input
-                                type="date"
-                                value={child.dob}
-                                onChange={(e) => updateChild(index, 'dob', e.target.value)}
-                                className="border-2 border-gray-300 focus:border-red-600 py-4"
-                              />
+                              <div className="relative" style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ position: 'relative', width: '100%' }}>
+                                  <Input
+                                  type="date"
+                                  {...register(`childrenInfo.${index}.dob`)}
+                                  className={`border-2 ${errors.childrenInfo?.[index]?.dob ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                                />
+                                {errors.childrenInfo?.[index]?.dob && (
+                                  <FormFieldError message={errors.childrenInfo[index].dob?.message || 'Valid date of birth is required'} />
+                                )}
+                                </div>
+                              </div>
                             </div>
                             <div className="space-y-3">
                               <Label className="text-xl">Photo of Child *</Label>
-                              <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => updateChild(index, 'photo', e.target.files?.[0] || null)}
-                                className="border-2 border-gray-300 focus:border-red-600 py-4"
-                              />
+                              <div className="relative" style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ position: 'relative', width: '100%' }}>
+                                  <Controller
+                                  name={`childrenInfo.${index}.photo`}
+                                  control={control}
+                                  render={({ field: { onChange, value, ...field } }) => (
+                                    <Input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => onChange(e.target.files?.[0] || null)}
+                                      className={`border-2 ${errors.childrenInfo?.[index]?.photo ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                                      {...field}
+                                    />
+                                  )}
+                                />
+                                {errors.childrenInfo?.[index]?.photo && (
+                                  <FormFieldError message={errors.childrenInfo[index].photo?.message || 'Child photo is required'} />
+                                )}
+                                </div>
+                              </div>
                             </div>
                             <div className="space-y-3">
                               <Label className="text-xl">Allergies</Label>
                               <Textarea
                                 placeholder="List any allergies or special dietary needs..."
-                                value={child.allergies}
-                                onChange={(e) => updateChild(index, 'allergies', e.target.value)}
+                                {...register(`childrenInfo.${index}.allergies`)}
                                 className="border-2 border-gray-300 focus:border-red-600 min-h-[100px]"
                               />
                             </div>
@@ -444,20 +561,36 @@ export function GuestForm() {
                   
                   <div className="space-y-3">
                     <Label htmlFor="carType" className="text-xl">Vehicle Type *</Label>
-                    <Select value={carType} onValueChange={setCarType} required>
-                      <SelectTrigger className="border-2 border-gray-300 focus:border-red-600 py-4 text-xl">
-                        <SelectValue placeholder="Select vehicle type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Sedan" className="text-xl">Sedan</SelectItem>
-                        <SelectItem value="SUV" className="text-xl">SUV</SelectItem>
-                        <SelectItem value="Truck" className="text-xl">Truck</SelectItem>
-                        <SelectItem value="Van" className="text-xl">Van</SelectItem>
-                        <SelectItem value="Coupe" className="text-xl">Coupe</SelectItem>
-                        <SelectItem value="Hatchback" className="text-xl">Hatchback</SelectItem>
-                        <SelectItem value="Other" className="text-xl">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="relative" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <Controller
+                          name="carType"
+                          control={control}
+                          render={({ field }) => (
+                            <Select 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value}
+                            >
+                              <SelectTrigger 
+                                className={`border-2 ${errors.carType ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4 text-xl`}
+                              >
+                                <SelectValue placeholder="Select vehicle type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Sedan" className="text-xl">Sedan</SelectItem>
+                                <SelectItem value="SUV" className="text-xl">SUV</SelectItem>
+                                <SelectItem value="Truck" className="text-xl">Truck</SelectItem>
+                                <SelectItem value="Van" className="text-xl">Van</SelectItem>
+                                <SelectItem value="Coupe" className="text-xl">Coupe</SelectItem>
+                                <SelectItem value="Hatchback" className="text-xl">Hatchback</SelectItem>
+                                <SelectItem value="Other" className="text-xl">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                        {errors.carType && <FormFieldError message={errors.carType.message || 'Vehicle type is required'} />}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -465,8 +598,7 @@ export function GuestForm() {
                       <Label htmlFor="vehicleMake" className="text-xl">Make</Label>
                       <Input
                         id="vehicleMake"
-                        value={vehicleMake}
-                        onChange={(e) => setVehicleMake(e.target.value)}
+                        {...register('vehicleMake')}
                         placeholder="e.g., Toyota"
                         className="border-2 border-gray-300 focus:border-red-600 py-4"
                       />
@@ -475,8 +607,7 @@ export function GuestForm() {
                       <Label htmlFor="vehicleModel" className="text-xl">Model</Label>
                       <Input
                         id="vehicleModel"
-                        value={vehicleModel}
-                        onChange={(e) => setVehicleModel(e.target.value)}
+                        {...register('vehicleModel')}
                         placeholder="e.g., Camry"
                         className="border-2 border-gray-300 focus:border-red-600 py-4"
                       />
@@ -485,8 +616,7 @@ export function GuestForm() {
                       <Label htmlFor="vehicleColor" className="text-xl">Color</Label>
                       <Input
                         id="vehicleColor"
-                        value={vehicleColor}
-                        onChange={(e) => setVehicleColor(e.target.value)}
+                        {...register('vehicleColor')}
                         placeholder="e.g., Blue"
                         className="border-2 border-gray-300 focus:border-red-600 py-4"
                       />
@@ -505,8 +635,7 @@ export function GuestForm() {
                     <Label htmlFor="foodAllergies" className="text-xl">Food Allergies or Dietary Restrictions</Label>
                     <Textarea
                       id="foodAllergies"
-                      value={foodAllergies}
-                      onChange={(e) => setFoodAllergies(e.target.value)}
+                      {...register('foodAllergies')}
                       placeholder="Please list any food allergies or dietary restrictions..."
                       className="border-2 border-gray-300 focus:border-red-600 min-h-[120px]"
                     />
@@ -516,8 +645,7 @@ export function GuestForm() {
                     <Label htmlFor="specialNeeds" className="text-xl">Special Needs or Accommodations</Label>
                     <Textarea
                       id="specialNeeds"
-                      value={specialNeeds}
-                      onChange={(e) => setSpecialNeeds(e.target.value)}
+                      {...register('specialNeeds')}
                       placeholder="Please describe any special needs or accommodations..."
                       className="border-2 border-gray-300 focus:border-red-600 min-h-[120px]"
                     />
@@ -527,8 +655,7 @@ export function GuestForm() {
                     <Label htmlFor="additionalNotes" className="text-xl">Additional Notes</Label>
                     <Textarea
                       id="additionalNotes"
-                      value={additionalNotes}
-                      onChange={(e) => setAdditionalNotes(e.target.value)}
+                      {...register('additionalNotes')}
                       placeholder="Any additional information you'd like to share..."
                       className="border-2 border-gray-300 focus:border-red-600 min-h-[120px]"
                     />

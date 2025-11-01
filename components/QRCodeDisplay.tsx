@@ -28,7 +28,6 @@ export function QRCodeDisplay({ value, size = 150, className = '', guestInfo, sh
         }
       }, (error) => {
         if (error) {
-          console.error('QR Code generation error:', error)
         }
       })
     }

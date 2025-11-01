@@ -14,7 +14,7 @@ import { AnimatedSection } from './AnimatedSection'
 import { FloatingElements } from './FloatingElements'
 import { motion } from 'motion/react'
 import Image from 'next/image'
-import { checkGuestStatus } from '@/lib/actions'
+import { checkGuestStatus } from '@/lib/guest-status'
 import { GuestStatus } from '@/lib/types'
 
 interface Submission {
@@ -101,7 +101,6 @@ export function StatusCheck() {
         codeWord: result.guest.code_word,
       })
     } catch (err) {
-      console.error('Verification error:', err)
       setError(err instanceof Error ? err.message : 'Verification failed')
     } finally {
       setLoading(false)

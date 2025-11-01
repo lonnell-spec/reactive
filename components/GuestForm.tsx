@@ -13,7 +13,7 @@ import { Search } from 'lucide-react'
 import { AnimatedText } from './AnimatedText'
 import { AnimatedSection } from './AnimatedSection'
 import { FloatingElements } from './FloatingElements'
-import { submitGuestForm } from '@/lib/actions'
+import { submitGuestForm } from '@/lib/guest-form-actions'
 import { guestFormSchema, GuestFormData } from '@/lib/types'
 import { GuestFormSubmitted } from './forms/GuestFormSubmitted'
 import { PersonalInformationSection } from './forms/sections/PersonalInformationSection'
@@ -102,7 +102,7 @@ export function GuestForm() {
         throw new Error(result.message || 'Submission failed')
       }
 
-      setSubmissionId(result.submissionId)
+      setSubmissionId(result.submissionId!)
       setSuccess(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

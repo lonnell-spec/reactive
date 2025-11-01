@@ -1,9 +1,42 @@
 'use server'
 
+import { generateMockId, generateMockMessageId } from './id-utils';
+
 interface TextMagicSendParams {
   phone: string;
   message: string;
   from?: string;
+}
+
+/**
+ * Formats a phone number to E.164 format
+ * Pure function for testability
+ * 
+ * @param phone The phone number to format
+ * @param countryCode The country code to prepend (default: '+1')
+ * @returns Formatted phone number in E.164 format
+ */
+export async function formatPhoneToE164(
+  phone: string, 
+  countryCode: string = '+1'
+): Promise<string> {
+  if (!phone) {
+    throw new Error('Phone number is required');
+  }
+
+  // If already has country code, return as-is
+  if (phone.startsWith('+')) {
+    return phone;
+  }
+
+  // Remove all non-digit characters
+  const digitsOnly = phone.replace(/\D/g, '');
+  
+  if (digitsOnly.length === 0) {
+    throw new Error('Phone number must contain digits');
+  }
+
+  return `${countryCode}${digitsOnly}`;
 }
 
 export async function sendTextMagicSMS({ phone, message, from }: TextMagicSendParams) {
@@ -18,14 +51,14 @@ export async function sendTextMagicSMS({ phone, message, from }: TextMagicSendPa
       console.log(message);
       console.log('==============================================\n');
       
-      // Return mock success response
+      // Return mock success response using pure utility functions
       return { 
         success: true, 
         data: { 
-          id: 'dev-' + Date.now(), 
+          id: await generateMockId('dev'),
           sessionId: 'dev-session',
           bulkId: 'dev-bulk',
-          messageId: 'dev-msg-' + Math.random().toString(36).substring(2, 10),
+          messageId: await generateMockMessageId(),
           href: '/api/v2/messages/dev'
         } 
       };
@@ -39,9 +72,8 @@ export async function sendTextMagicSMS({ phone, message, from }: TextMagicSendPa
       throw new Error('TextMagic credentials not configured');
     }
 
-    // Format phone number to E.164 format if needed
-    // This is a simple example - you may need more sophisticated formatting
-    const formattedPhone = phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g, '')}`;
+    // Format phone number to E.164 format
+    const formattedPhone = await formatPhoneToE164(phone);
     
     const url = 'https://rest.textmagic.com/api/v2/messages';
     

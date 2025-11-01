@@ -1,3 +1,4 @@
+import { PostgrestError } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 // File validation that works in both browser and Node environments
@@ -47,6 +48,7 @@ export const childInfoSchema = z.object({
 });
 
 export type ChildInfo = z.infer<typeof childInfoSchema>;
+export type ChildInfoNoPhoto = Omit<ChildInfo, 'photo'>;
 
 // Guest form schema
 export const guestFormSchema = z.object({
@@ -86,4 +88,15 @@ export enum GuestStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   DENIED = 'denied'
+}
+
+export type GuestInsertResult =  {
+  id: string;
+  credential_id: string;
+}
+
+export type Cleanup = {
+  guestId: string | null;
+  childrenIds: string[];
+  uploadedFiles: string[];
 }

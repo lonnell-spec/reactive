@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import { QRCodeDisplay } from '@/components/QRCodeDisplay'
-import { getGuestCredentials } from '@/lib/actions'
+import { getGuestCredentials } from '@/lib/guest-credentials'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -56,10 +56,9 @@ export default function GuestCredentialsPage() {
         if (!result.success) {
           setError(result.message || 'Failed to retrieve guest credentials')
         } else {
-          setGuestData(result.guest)
+          setGuestData(result.data)
         }
       } catch (err) {
-        console.error('Error fetching guest credentials:', err)
         setError('An error occurred while retrieving your guest pass')
       } finally {
         setLoading(false)

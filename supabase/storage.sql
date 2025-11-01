@@ -1,5 +1,5 @@
 -- Create storage bucket for guest photos
--- Note: Keep bucket private; uploads should be done server-side
+-- Note: Keep bucket private for security; use signed URLs for access
 
 insert into storage.buckets (id, name, public)
 values ('guest-photos', 'guest-photos', false)

@@ -14,7 +14,7 @@ import { FloatingElements } from './FloatingElements'
 import { motion } from 'motion/react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Image from 'next/image'
-import { validateRegistrationCode, createUserWithRole } from '@/lib/auth-actions'
+import { signInUser, registerUser, requestPasswordReset } from '@/lib/auth-client-actions'
 
 interface AdminLoginProps {
   onLogin: (accessToken: string, user: any) => void
@@ -41,29 +41,15 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setError('')
     setMessage('')
     
-    try {
-      if (!email || !password) {
-        throw new Error('Email and password are required')
-      }
-      
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-      
-      if (signInError) throw signInError
-      
-      if (data?.session) {
-        onLogin(data.session.access_token, data.user)
-      } else {
-        throw new Error('Authentication failed')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
-      console.error('Login error:', err)
-    } finally {
-      setLoading(false)
+    const result = await signInUser(email, password)
+    
+    if (result.success) {
+      onLogin(result.session!.access_token, result.user)
+    } else {
+      setError(result.message)
     }
+    
+    setLoading(false)
   }
   
   const handleSignUp = async (e: React.FormEvent) => {
@@ -72,47 +58,21 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setError('')
     setMessage('')
     
-    try {
-      // Validate form
-      if (!email || !password || !confirmPassword || !adminCode) {
-        throw new Error('All fields are required')
-      }
-      
-      if (password !== confirmPassword) {
-        throw new Error('Passwords do not match')
-      }
-      
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters')
-      }
-      
-      // Verify the registration code for the selected role using server action
-      const validationResult = await validateRegistrationCode(adminCode, userRole)
-      
-      if (!validationResult.isValid) {
-        throw new Error(validationResult.message)
-      }
-
-      // Create user account using server action
-      const createResult = await createUserWithRole(email, password, userRole)
-      
-      if (!createResult.success) {
-        throw new Error(createResult.message)
-      }
-      
-      setMessage('Account created successfully! Please sign in.')
+    const result = await registerUser(email, password, confirmPassword, adminCode, userRole)
+    
+    if (result.success) {
+      setMessage(result.message)
       setActiveTab('sign-in')
       
       // Reset form
       setAdminCode('')
       setPassword('')
       setConfirmPassword('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed')
-      console.error('Registration error:', err)
-    } finally {
-      setLoading(false)
+    } else {
+      setError(result.message)
     }
+    
+    setLoading(false)
   }
   
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -121,24 +81,15 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setError('')
     setMessage('')
     
-    try {
-      if (!email) {
-        throw new Error('Email is required')
-      }
-      
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/admin?reset=true',
-      })
-      
-      if (resetError) throw resetError
-      
-      setMessage('Password reset instructions have been sent to your email.')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Password reset request failed')
-      console.error('Password reset error:', err)
-    } finally {
-      setLoading(false)
+    const result = await requestPasswordReset(email)
+    
+    if (result.success) {
+      setMessage(result.message)
+    } else {
+      setError(result.message)
     }
+    
+    setLoading(false)
   }
   
   return (

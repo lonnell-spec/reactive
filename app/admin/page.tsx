@@ -3,8 +3,8 @@
 import { AdminLogin } from '@/components/AdminLogin'
 import { AdminDashboard } from '@/components/AdminDashboard'
 import { useEffect, useState, useRef, Suspense } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 // Separate component to handle URL parameters with Suspense
 function UrlParamsHandler({ onResetParam }: { onResetParam: (reset: boolean) => void }) {
@@ -28,7 +28,6 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null)
   const [isReset, setIsReset] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
 
   const handleResetParam = (reset: boolean) => {
     if (reset) {
@@ -41,31 +40,27 @@ export default function AdminPage() {
   useEffect(() => {
     // Flag to prevent multiple session checks
     let isMounted = true;
-    console.log('Admin page effect running, loading state:', loading);
     
     async function checkSession() {
       try {
         if (!isMounted) return;
         
-        console.log('Checking session...');
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        const supabaseAuthClient = createClientComponentClient()
+        const { data: { session }, error: sessionError } = await supabaseAuthClient.auth.getSession()
         
         if (sessionError) {
           throw sessionError
         }
         
         if (isMounted) {
-          console.log('Setting user:', session?.user ? 'logged in' : 'not logged in');
           setUser(session?.user || null)
         }
       } catch (err) {
-        console.error('Session check error:', err)
         if (isMounted) {
           setError('Failed to authenticate. Please try again.')
         }
       } finally {
         if (isMounted) {
-          console.log('Setting loading to false');
           setLoading(false)
         }
       }
@@ -73,13 +68,14 @@ export default function AdminPage() {
 
     checkSession()
 
-    // Only listen for critical auth events, not every state change
-    const { data: authListener } = supabase.auth.onAuthStateChange(
+    // Set up auth listener
+    async function setupAuthListener() {
+      const supabaseAuthClient = createClientComponentClient()
+      // Only listen for critical auth events, not every state change
+      const { data: authListener } = supabaseAuthClient.auth.onAuthStateChange(
       (event, session) => {
         // Only respond to specific auth events
         if (!isMounted) return;
-        
-        console.log('Auth event:', event);
         
         if (event === 'SIGNED_IN') {
           setUser(session?.user || null)
@@ -92,19 +88,28 @@ export default function AdminPage() {
         // Ignore other events that might be triggered on focus
       }
     )
+      
+      return authListener
+    }
+    
+    let authListener: any = null
+    setupAuthListener().then(listener => {
+      authListener = listener
+    })
 
     return () => {
       isMounted = false;
       authListener?.subscription.unsubscribe()
     }
-  }, [supabase, router, loading])
+  }, [])
 
   const handleLogin = (_accessToken: string, user: any) => {
     setUser(user)
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    const supabaseAuthClient = createClientComponentClient()
+    await supabaseAuthClient.auth.signOut()
     setUser(null)
   }
 

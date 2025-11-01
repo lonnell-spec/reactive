@@ -1,6 +1,8 @@
 'use server'
 
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseServiceClient } from './supabase-client';
+import { getRoleName, isValidRole, getRoleRegistrationCode } from './role-utils';
+import { isValidEmailFormat } from './string-utils';
 
 // Define the response type for our validation
 interface ValidationResponse {
@@ -20,26 +22,19 @@ export async function validateRegistrationCode(
   code: string,
   selectedRole: string
 ): Promise<ValidationResponse> {
-  // Get the appropriate registration code from environment variables
-  let validCode = '';
-  console.log('selectedRole', selectedRole);
-  switch (selectedRole) {
-    case 'pre_approver':
-      validCode = process.env.PRE_APPROVER_REGISTRATION_CODE || '';
-      break;
-    case 'admin':
-      validCode = process.env.ADMIN_REGISTRATION_CODE || '';
-      break;
-    default:
-      return {
-        isValid: false,
-        message: 'Invalid role selected'
-      };
+  // Validate role using pure function
+  if (!(await isValidRole(selectedRole))) {
+    return {
+      isValid: false,
+      message: 'Invalid role selected'
+    };
   }
+
+  // Get registration code using pure function
+  const validCode = await getRoleRegistrationCode(selectedRole);
 
   // Validate the code
   if (!validCode) {
-    console.error(`Registration code not configured for role: ${selectedRole}`);
     return {
       isValid: false,
       message: 'Registration is not available for this role. Please contact the system administrator.'
@@ -47,9 +42,10 @@ export async function validateRegistrationCode(
   }
 
   if (code !== validCode) {
+    const roleName = await getRoleName(selectedRole);
     return {
       isValid: false,
-      message: `Invalid registration code for ${getRoleName(selectedRole)}`
+      message: `Invalid registration code for ${roleName}`
     };
   }
 
@@ -62,46 +58,46 @@ export async function validateRegistrationCode(
 
 /**
  * Creates a new user account with the specified role
+ * Pure business logic with injectable dependencies
  * 
  * @param email User's email
  * @param password User's password
  * @param role User's role
+ * @param dependencies Injectable dependencies for testing
  * @returns Object with success status and message
  */
 export async function createUserWithRole(
   email: string,
   password: string,
-  role: string
+  role: string,
+  dependencies: {
+    getSupabaseClient?: typeof getSupabaseServiceClient;
+    createUserData?: (email: string, password: string, role: string) => Promise<any>;
+  } = {}
 ) {
+  const {
+    getSupabaseClient = getSupabaseServiceClient,
+    createUserData = createUserCreationData
+  } = dependencies;
+
+  // Validate inputs using pure function
+  const validation = await validateUserCreationInputs(email, password, role);
+  if (!validation.isValid) {
+    return {
+      success: false,
+      message: validation.message
+    };
+  }
+
   try {
-    // Create a Supabase client with the service role key
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const supabaseService = await getSupabaseClient();
     
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Supabase credentials not configured');
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Prepare user creation data using pure function
+    const userData = await createUserData(email, password, role);
 
     // Create the user
-    // Note: We need to set the role in app_metadata for RLS policies to work
-    // The role in user_metadata is for display purposes only
-    const { data, error } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        role
-      },
-      app_metadata: {
-        role
-      }
-    });
+    const { data, error } = await supabaseService.auth.admin.createUser(userData);
     
-    // Log the created user for debugging
-    console.log('Created user with role:', { role, user: data?.user });
-
     if (error) {
       throw error;
     }
@@ -112,7 +108,6 @@ export async function createUserWithRole(
       userId: data.user?.id
     };
   } catch (err) {
-    console.error('Error creating user:', err);
     return {
       success: false,
       message: err instanceof Error ? err.message : 'Failed to create account'
@@ -121,71 +116,73 @@ export async function createUserWithRole(
 }
 
 /**
- * Ensures a user has the correct role in their app_metadata
- * This is useful for fixing users who might have the role in the wrong place
+ * Validates user creation inputs
+ * Pure function for testability
  * 
- * @param userId The user ID to update
- * @param role The role to ensure
- * @returns Object with success status and message
+ * @param email User's email
+ * @param password User's password  
+ * @param role User's role
+ * @returns Validation result
  */
-export async function ensureUserRole(userId: string, role: string) {
-  try {
-    // Create a Supabase client with the service role key
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Supabase credentials not configured');
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get the current user
-    const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(userId);
-    
-    if (getUserError) {
-      throw getUserError;
-    }
-    
-    if (!userData?.user) {
-      throw new Error('User not found');
-    }
-    
-    console.log('Current user data:', userData.user);
-    
-    // Update the user's app_metadata
-    const { data, error: updateError } = await supabase.auth.admin.updateUserById(userId, {
-      app_metadata: { role }
-    });
-    
-    if (updateError) {
-      throw updateError;
-    }
-    
-    console.log('Updated user data:', data?.user);
-    
+export async function validateUserCreationInputs(
+  email: string,
+  password: string,
+  role: string
+): Promise<ValidationResponse> {
+  // Validate email format
+  if (!email || !(await isValidEmailFormat(email))) {
     return {
-      success: true,
-      message: `Role ${role} has been applied to user ${userId}`,
-      user: data?.user
-    };
-  } catch (err) {
-    console.error('Error ensuring user role:', err);
-    return {
-      success: false,
-      message: err instanceof Error ? err.message : 'Failed to update user role'
+      isValid: false,
+      message: 'Please provide a valid email address'
     };
   }
+
+  // Validate password strength
+  if (!password || password.length < 6) {
+    return {
+      isValid: false,
+      message: 'Password must be at least 6 characters long'
+    };
+  }
+
+  // Validate role
+  if (!(await isValidRole(role))) {
+    return {
+      isValid: false,
+      message: 'Invalid role specified'
+    };
+  }
+
+  return {
+    isValid: true,
+    message: 'Validation passed'
+  };
 }
 
-// Helper function to get a user-friendly role name
-function getRoleName(role: string): string {
-  switch (role) {
-    case 'pre_approver':
-      return 'Pre-Approver';
-    case 'admin':
-      return 'Admin';
-    default:
-      return role;
-  }
+/**
+ * Creates user creation data object
+ * Pure function for testability
+ * 
+ * @param email User's email
+ * @param password User's password
+ * @param role User's role
+ * @returns User creation data object
+ */
+export async function createUserCreationData(
+  email: string,
+  password: string,
+  role: string
+): Promise<any> {
+  return {
+    email,
+    password,
+    email_confirm: true, // Auto-confirm email
+    user_metadata: {
+      role
+    },
+    app_metadata: {
+      role
+    }
+  };
 }
+

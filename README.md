@@ -33,7 +33,7 @@ Create a `.env.local` file in the root directory with the following variables:
 
 ```
 # Supabase URL and keys
-SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 

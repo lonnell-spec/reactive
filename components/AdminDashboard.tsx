@@ -389,20 +389,6 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
             </Card>
           ) : (
             <>
-              {/* Active submission view */}
-              <GuestDetailsModal
-                submission={[...guestSubmissions, ...completedSubmissions].find(sub => sub.id === activeSubmission) || null}
-                userRoles={userRoles}
-                actionLoading={actionLoading}
-                onClose={() => setActiveSubmission(null)}
-                onPreApprove={handlePreApprove}
-                onPreApprovalDeny={handlePreApprovalDeny}
-                onApprove={handleApprove}
-                onDeny={handleDeny}
-                getRelativeTime={getRelativeTime}
-                formatDate={formatDate}
-              />
-            
               {/* Guest Submissions */}
               <div className="mb-8">
                 <GuestListing
@@ -431,6 +417,20 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
           )}
         </div>
       </div>
+
+      {/* Modal rendered outside main content flow */}
+      <GuestDetailsModal
+        submission={[...guestSubmissions, ...completedSubmissions].find(sub => sub.id === activeSubmission) || null}
+        userRoles={userRoles}
+        actionLoading={actionLoading}
+        onClose={() => setActiveSubmission(null)}
+        onPreApprove={handlePreApprove}
+        onPreApprovalDeny={handlePreApprovalDeny}
+        onApprove={handleApprove}
+        onDeny={handleDeny}
+        getRelativeTime={getRelativeTime}
+        formatDate={formatDate}
+      />
     </div>
   )
 }

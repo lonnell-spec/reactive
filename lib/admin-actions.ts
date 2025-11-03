@@ -1,7 +1,7 @@
 'use client'
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { notifyGuestOfPreApproval, notifyGuestOfApproval, notifyGuestOfDenial } from './notifications'
+import { notifyGuestOfPreApproval, notifyGuestOfApproval, notifyGuestOfDenial, sendApproverNotification } from './notifications'
 import { generateCodeWord, generateCredentialId, generateQRCode, getGuestCredentials } from './guest-credentials';
 
 /**
@@ -15,12 +15,14 @@ export async function preApproveGuest(
   guestId: string,
   dependencies: {
     supabaseClient?: any;
-    notificationFn?: typeof notifyGuestOfPreApproval;
+    guestPreApprovalNotificationFn?: typeof notifyGuestOfPreApproval;
+    approverNotificationFn?: typeof sendApproverNotification;
   } = {}
 ) {
   const {
     supabaseClient = createClientComponentClient(),
-    notificationFn = notifyGuestOfPreApproval
+    guestPreApprovalNotificationFn = notifyGuestOfPreApproval,
+    approverNotificationFn = sendApproverNotification
   } = dependencies;
 
   if (!guestId) {
@@ -37,7 +39,8 @@ export async function preApproveGuest(
     }
     
     // Send SMS notification to the guest
-    await notificationFn(guestId);
+    await approverNotificationFn(guestId, 'approve');
+    await guestPreApprovalNotificationFn(guestId);
     
     return {
       success: true,

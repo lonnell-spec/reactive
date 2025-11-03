@@ -1,18 +1,18 @@
 'use server'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { sendTextMagicSMS } from './textmagic';
 import { GuestStatus } from './types';
-import { formatPreApprovalMessage } from './message-utils';
+import { formatApproverMessage, formatPreApproverMessage } from './message-utils';
+import { getSupabaseServiceClient } from './supabase-client';
 
 /**
  * Sends a notification to pre-approvers when a new guest registration is submitted
  */
-export async function sendPreApprovalNotification(guestId: string) {
+export async function sendPreApproverNotification(guestId: string) {
   try {
-    const supabaseAuthClient = createClientComponentClient();
+    const supabaseService = await getSupabaseServiceClient();
     // Get the guest information from Supabase
-    const { data: guest, error: guestError } = await supabaseAuthClient
+    const { data: guest, error: guestError } = await supabaseService
       .from('guests')
       .select('*')
       .eq('id', guestId)
@@ -24,14 +24,55 @@ export async function sendPreApprovalNotification(guestId: string) {
     
     // Get pre-approver phone number from environment variable
     const preApproverPhone = process.env.PRE_APPROVER_PHONE;
-    
     if (!preApproverPhone) {
       return false;
     }
     
     // Format the message using pure utility function
-    const message = await formatPreApprovalMessage(guest, process.env.APP_URL || '');
+    const message = await formatPreApproverMessage(guest, process.env.APP_URL || '');
+    // Send the SMS using TextMagic
+    const { success, error } = await sendTextMagicSMS({
+      phone: preApproverPhone,
+      message: message,
+    });
     
+    if (!success) {
+      // Don't throw an error here, as we don't want to fail the whole submission
+      // if the SMS notification fails
+    } else {
+    }
+    
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Sends a notification to approvers when a guest registration is pre-approved
+ */
+export async function sendApproverNotification(guestId: string, action: 'approve' | 'deny') {
+  try {
+    const supabaseService = await getSupabaseServiceClient();
+    // Get the guest information from Supabase
+    const { data: guest, error: guestError } = await supabaseService
+      .from('guests')
+      .select('*')
+      .eq('id', guestId)
+      .single();
+    
+    if (guestError || !guest) {
+      throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
+    }
+    
+    // Get pre-approver phone number from environment variable
+    const preApproverPhone = process.env.PRE_APPROVER_PHONE;
+    if (!preApproverPhone) {
+      return false;
+    }
+    
+    // Format the message using pure utility function
+    const message = await formatApproverMessage(guest, process.env.APP_URL || '');
     // Send the SMS using TextMagic
     const { success, error } = await sendTextMagicSMS({
       phone: preApproverPhone,
@@ -57,9 +98,9 @@ export async function sendPreApprovalNotification(guestId: string) {
 export async function notifyGuestOfPreApproval(guestId: string) {
   try {
     // Get the guest details from Supabase
-    const supabaseAuthClient = createClientComponentClient();
+    const supabaseService = await getSupabaseServiceClient();
     
-    const { data: guest, error: guestError } = await supabaseAuthClient
+    const { data: guest, error: guestError } = await supabaseService
       .from('guests')
       .select('*')
       .eq('id', guestId)
@@ -89,16 +130,6 @@ We look forward to seeing you on ${new Date(guest.visit_date).toLocaleDateString
       throw new Error(`Failed to send SMS: ${error}`);
     }
     
-    // Update the guest status to pre-approved
-    const { error: updateError } = await supabaseAuthClient
-      .from('guests')
-      .update({ status: GuestStatus.PENDING })
-      .eq('id', guestId);
-    
-    if (updateError) {
-      throw new Error(`Failed to update guest status: ${updateError.message}`);
-    }
-    
     return {
       success: true,
       message: `Pre-approval notification sent to ${guest.phone}`
@@ -117,9 +148,9 @@ We look forward to seeing you on ${new Date(guest.visit_date).toLocaleDateString
 export async function notifyGuestOfApproval(guestId: string) {
   try {
     // Get the guest details from Supabase
-    const supabaseAuthClient = createClientComponentClient();
+    const supabaseService = await getSupabaseServiceClient();
     
-    const { data: guest, error: guestError } = await supabaseAuthClient
+    const { data: guest, error: guestError } = await supabaseService
       .from('guests')
       .select('*')
       .eq('id', guestId)
@@ -168,9 +199,9 @@ Your code word is: ${guest.code_word}
 export async function notifyGuestOfDenial(guestId: string, reason: string) {
   try {
     // Get the guest details from Supabase
-    const supabaseAuthClient = createClientComponentClient();
+    const supabaseService = await getSupabaseServiceClient();
     
-    const { data: guest, error: guestError } = await supabaseAuthClient
+    const { data: guest, error: guestError } = await supabaseService
       .from('guests')
       .select('*')
       .eq('id', guestId)

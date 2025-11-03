@@ -2,12 +2,12 @@
 
 import React from 'react'
 import { Button } from './ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Card, CardContent } from './ui/card'
 import { Badge } from './ui/badge'
 import { CheckCircle, XCircle, Calendar, Car, Heart, MessageSquare, Phone, Mail, Baby } from 'lucide-react'
-import { AnimatedSection } from './AnimatedSection'
 import { GuestStatus } from '@/lib/types'
 import { ProfileImage } from './ProfileImage'
+import { Modal } from './ui/modal'
 
 interface Submission {
   id: string
@@ -78,23 +78,16 @@ export function GuestDetailsModal({
   getRelativeTime,
   formatDate
 }: GuestDetailsModalProps) {
-  if (!submission) return null
-
   return (
-    <AnimatedSection>
-      <Card className="border-2 border-black shadow-xl mb-8">
-        <CardHeader className="bg-black text-white flex flex-row justify-between items-center">
-          <CardTitle className="text-2xl">Guest Details</CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-white text-white hover:bg-gray-800"
-            onClick={onClose}
-          >
-            Close
-          </Button>
-        </CardHeader>
-        <CardContent className="p-6">
+    <Modal
+      isOpen={!!submission}
+      onClose={onClose}
+      title="Guest Details"
+      className="max-w-5xl"
+    >
+      {submission && (
+        <Card className="border-0 shadow-none">
+          <CardContent className="p-0">
           <div className="space-y-8">
             {/* Guest header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-gray-200">
@@ -358,7 +351,8 @@ export function GuestDetailsModal({
           </div>
         </CardContent>
       </Card>
-    </AnimatedSection>
+      )}
+    </Modal>
   )
 }
 

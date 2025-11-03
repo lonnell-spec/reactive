@@ -4,7 +4,7 @@ import { guestFormSchema, fileSchema, GuestStatus, GuestFormData, GuestInsertRes
 import { revalidatePath } from 'next/cache';
 import { getSupabaseServiceClient } from './supabase-client';
 import { rollbackGuestSubmission } from './rollback';
-import { sendPreApprovalNotification } from './notifications';
+import { sendPreApproverNotification } from './notifications';
 import { generateCodeWord, generateQRCode } from './guest-credentials';
 import { parseFormBoolean, parseChildrenWithPhotos, getFormString } from './form-utils';
 import { fileToBuffer, generateProfilePicturePath, uploadChildPhoto, prepareProfilePictureUpload } from './storage-utils';
@@ -23,7 +23,7 @@ export async function submitGuestForm(
     getSupabaseClient?: () => Promise<Awaited<ReturnType<typeof getSupabaseServiceClient>>>;
     uploadProfilePictureFn?: typeof uploadProfilePicture;
     insertChildrenFn?: typeof insertChildrenWithPhotos;
-    sendNotificationFn?: typeof sendPreApprovalNotification;
+    sendNotificationFn?: typeof sendPreApproverNotification;
   } = {}
 ) {
   // Initialize Supabase client using injectable dependency
@@ -31,7 +31,7 @@ export async function submitGuestForm(
     getSupabaseClient = getSupabaseServiceClient,
     uploadProfilePictureFn = uploadProfilePicture,
     insertChildrenFn = insertChildrenWithPhotos,
-    sendNotificationFn = sendPreApprovalNotification
+    sendNotificationFn = sendPreApproverNotification
   } = dependencies;
   
   const supabaseService = await getSupabaseClient();

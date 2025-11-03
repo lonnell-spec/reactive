@@ -14,14 +14,14 @@ interface GuestInfo {
 }
 
 /**
- * Formats a pre-approval notification message
+ * Formats a pre-approver notification message
  * Pure function for testability
  * 
  * @param guest Guest information
  * @param adminUrl URL for admin approval
  * @returns Formatted message string
  */
-export async function formatPreApprovalMessage(
+export async function formatPreApproverMessage(
   guest: GuestInfo,
   adminUrl: string
 ): Promise<string> {
@@ -33,6 +33,35 @@ export async function formatPreApprovalMessage(
 
   return `
 New guest registration requires pre-approval:
+Name: ${guest.first_name} ${guest.last_name}
+Visit Date: ${formattedDate}
+Time: ${guest.gathering_time}
+Guests: ${guest.total_guests}
+Approve at: ${adminUrl}/admin
+If text message, reply "YES" to approve, "NO" to deny.
+`.trim();
+}
+
+/**
+ * Formats an approver notification message
+ * Pure function for testability
+ * 
+ * @param guest Guest information
+ * @param adminUrl URL for admin approval
+ * @returns Formatted message string
+ */
+export async function formatApproverMessage(
+  guest: GuestInfo,
+  adminUrl: string
+): Promise<string> {
+  if (!guest || !adminUrl) {
+    throw new Error('Guest information and admin URL are required');
+  }
+
+  const formattedDate = await formatDateString(guest.visit_date);
+
+  return `
+New guest registration requires approval:
 Name: ${guest.first_name} ${guest.last_name}
 Visit Date: ${formattedDate}
 Time: ${guest.gathering_time}

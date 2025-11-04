@@ -5,10 +5,10 @@ import { revalidatePath } from 'next/cache';
 import { getSupabaseServiceClient } from './supabase-client';
 import { rollbackGuestSubmission } from './rollback';
 import { sendPreApproverNotification } from './notifications';
-import { generateCodeWord, generateQRCode } from './guest-credentials';
 import { parseFormBoolean, parseChildrenWithPhotos, getFormString } from './form-utils';
 import { fileToBuffer, generateProfilePicturePath, uploadChildPhoto, prepareProfilePictureUpload } from './storage-utils';
 import { mapFormDataToGuestRecord, mapChildInfoToRecord, createGuestProfileUpdateRecord, createChildPhotoUpdateRecord } from './database-utils';
+import { calculateExpireDateTime } from './date-utils';
 
 
 /**
@@ -60,7 +60,7 @@ export async function submitGuestForm(
 
     await insertChildrenFn(supabaseService, parsedData, guest, cleanup);
 
-    await updateGuestWithGeneratedQRCode(supabaseService, guest);
+    // Note: QR code, code_word, and pass_id will be generated only when guest is approved
 
     await sendNotificationFn(guest.id);
 
@@ -69,7 +69,7 @@ export async function submitGuestForm(
 
     return {
       success: true,
-      submissionId: guest.id,
+      submissionId: guest.external_guest_id,
       message: 'Guest registration submitted successfully and pending pre-approval.'
     };
 
@@ -149,22 +149,6 @@ async function insertChildrenWithPhotos(
   }
 }
 
-async function updateGuestWithGeneratedQRCode(supabaseService: Awaited<ReturnType<typeof getSupabaseServiceClient>>, guest: GuestInsertResult) {
-  const qrCode = await generateQRCode(guest.credential_id as string);
-  
-  // Create update record using pure utility (note: using qr_code field, not qr_code_url)
-  const updateRecord = { qr_code: qrCode };
-
-  // Update guest record with QR code
-  const { error: qrUpdateError } = await supabaseService
-    .from('guests')
-    .update(updateRecord)
-    .eq('id', guest.id as string);
-
-  if (qrUpdateError) {
-    throw new Error('Failed to update guest with QR code');
-  }
-}
 
 async function updateGuestWithProfilePicturePath(supabaseService: Awaited<ReturnType<typeof getSupabaseServiceClient>>, profilePath: string, guest: GuestInsertResult) {
   // Create update record using pure utility
@@ -244,13 +228,17 @@ async function parseAndValidate(formData: FormData): Promise<GuestFormData> {
 }
 
 async function insertGuest(supabaseService: Awaited<ReturnType<typeof getSupabaseServiceClient>>, parsedData: GuestFormData): Promise<GuestInsertResult> {
+  // Calculate expires_at based on visit_date (Monday after visit_date at midnight)
+  const visitDate = new Date(parsedData.visitDate);
+  const expiresAt = await calculateExpireDateTime(visitDate);
+  
   // Map form data to database record using pure utility
-  const guestRecord = await mapFormDataToGuestRecord(parsedData);
+  const guestRecord = await mapFormDataToGuestRecord(parsedData, expiresAt);
   
   const { data: guest, error: guestError } = await supabaseService
     .from('guests')
     .insert(guestRecord)
-    .select()
+    .select('id, external_guest_id')
     .single();
 
   if (guestError) {

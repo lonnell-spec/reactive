@@ -92,7 +92,7 @@ export enum GuestStatus {
 
 export type GuestInsertResult =  {
   id: string;
-  credential_id: string;
+  external_guest_id: string;
 }
 
 export type Cleanup = {

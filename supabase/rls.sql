@@ -16,7 +16,7 @@ grant delete on table public.guest_children to service_role;
 -- grant privileges for authenticated users (admin dashboard)
 grant select on table public.guests to authenticated;
 grant select on table public.guest_children to authenticated;
-grant update (status,qr_code,code_word,qr_expiry,approved_by,approved_at,credential_id) on table public.guests to authenticated;
+grant update on table public.guests to authenticated;
 
 -- Enable RLS and define policies
 alter table public.guests enable row level security;

@@ -14,6 +14,7 @@ end;$$;
 -- Guests table
 create table if not exists public.guests (
   id uuid primary key default gen_random_uuid(),
+  external_guest_id uuid unique default gen_random_uuid(),
   status text not null default 'pending_pre_approval',
   first_name text not null,
   last_name text not null,
@@ -31,19 +32,20 @@ create table if not exists public.guests (
   special_needs text,
   additional_notes text,
   photo_path text,
+  pass_id uuid unique,
   qr_code text,
-  code_word text,
-  qr_expiry timestamptz,
-  credential_id uuid,
-  pre_approved_by uuid,
+  code_word text unique,
+  expires_at timestamptz,
+  is_used boolean not null default false,
+  used_at timestamptz,
+  pre_approved_by text,
   pre_approved_at timestamptz,
-  pre_approval_denied_by uuid,
+  pre_approval_denied_by text,
   pre_approval_denied_at timestamptz,
-  approved_by uuid,
+  approved_by text,
   approved_at timestamptz,
-  denied_by uuid,
+  denied_by text,
   denied_at timestamptz,
-  last_modified_admin_name text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -77,14 +79,14 @@ set search_path = ''
 as $$
 declare
   is_pre_approver boolean;
-  admin_id uuid;
+  admin_email text;
 begin
   -- First, confirm the user has the 'pre_approver' role
   select (auth.jwt() -> 'app_metadata' ->> 'role') = 'pre_approver' or (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
   into is_pre_approver;
   
-  -- Get the current user's ID
-  admin_id := auth.uid();
+  -- Get the current user's email
+  select auth.jwt() ->> 'email' into admin_email;
 
   if is_pre_approver then
     -- Now, perform the privileged update.
@@ -92,7 +94,7 @@ begin
     update public.guests
     set 
       status = 'pending',
-      pre_approved_by = admin_id,
+      pre_approved_by = admin_email,
       pre_approved_at = now()
     where id = guest_id and status = 'pending_pre_approval';
   else
@@ -114,14 +116,14 @@ set search_path = ''
 as $$
 declare
   is_pre_approver boolean;
-  admin_id uuid;
+  admin_email text;
 begin
   -- First, confirm the user has the 'pre_approver' role
   select (auth.jwt() -> 'app_metadata' ->> 'role') = 'pre_approver' or (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
   into is_pre_approver;
   
-  -- Get the current user's ID
-  admin_id := auth.uid();
+  -- Get the current user's email
+  select auth.jwt() ->> 'email' into admin_email;
 
   if is_pre_approver then
     -- Now, perform the privileged update.
@@ -129,7 +131,7 @@ begin
     update public.guests
     set 
       status = 'pre_approval_denied',
-      pre_approval_denied_by = admin_id,
+      pre_approval_denied_by = admin_email,
       pre_approval_denied_at = now()
     where id = guest_id and status = 'pending_pre_approval';
   else

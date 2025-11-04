@@ -1,15 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { Alert, AlertDescription } from './ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LogOut, RefreshCw } from 'lucide-react'
+import { LogOut, RefreshCw, Shield } from 'lucide-react'
 import { FloatingElements } from './FloatingElements'
 import Image from 'next/image'
 import { GuestStatus } from '@/lib/types'
-import { preApproveGuest, denyPreApproval, approveGuest, denyGuest } from '@/lib/admin-actions'
+import { preApproveGuest, denyPreApproval, approveGuest, denyGuest } from '@/lib/admin-client-actions'
 import { determineUserRoles, UserRoles } from '@/lib/user-role-utils'
 import { formatGuestDataList, Submission } from '@/lib/data-formatting-utils'
 import { GuestDetailsModal } from './GuestDetailsModal'
@@ -25,6 +26,7 @@ interface AdminDashboardProps {
 
 
 export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
+  const router = useRouter()
   const [guestSubmissions, setGuestSubmissions] = useState<Submission[]>([])
   const [completedSubmissions, setCompletedSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
@@ -299,6 +301,16 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
           </div>
           
           <div className="flex items-center gap-6">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-white text-white hover:bg-gray-800"
+              onClick={() => router.push('/admin/verification')}
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              Manual Verification
+            </Button>
+            
             <div className="flex items-center gap-3">
               <Avatar>
                 <AvatarFallback className="bg-red-600 text-white">

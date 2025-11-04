@@ -114,8 +114,7 @@ export async function notifyGuestOfPreApproval(guestId: string) {
     const message = `
 Your visit to Formation Church has been pre-approved!
 
-Please complete your registration by visiting:
-${process.env.APP_URL}/guest/confirm?id=${guest.credential_id}
+Please wait for final approval. You will receive another message with your guest pass when approved.
 
 We look forward to seeing you on ${new Date(guest.visit_date).toLocaleDateString()} at ${guest.gathering_time}.
 `;
@@ -165,7 +164,7 @@ export async function notifyGuestOfApproval(guestId: string) {
 Great news! Your visit to Formation Church has been approved!
 
 Your guest pass is ready:
-${process.env.APP_URL}/guest/pass?id=${guest.credential_id}
+${process.env.APP_URL}/pass/view/${guest.pass_id}
 
 We look forward to seeing you on ${new Date(guest.visit_date).toLocaleDateString()} at ${guest.gathering_time}.
 Your code word is: ${guest.code_word}

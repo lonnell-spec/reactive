@@ -18,14 +18,14 @@ interface GuestInfo {
  * Pure function for testability
  * 
  * @param guest Guest information
- * @param adminUrl URL for admin approval
+ * @param siteUrl URL for the site
  * @returns Formatted message string
  */
 export async function formatPreApproverMessage(
   guest: GuestInfo,
-  adminUrl: string
+  siteUrl: string
 ): Promise<string> {
-  if (!guest || !adminUrl) {
+  if (!guest || !siteUrl) {
     throw new Error('Guest information and admin URL are required');
   }
 
@@ -33,11 +33,11 @@ export async function formatPreApproverMessage(
 
   return `
 New guest registration requires pre-approval:
-Name: ${guest.first_name} ${guest.last_name}
+Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
 Visit Date: ${formattedDate}
 Time: ${guest.gathering_time}
 Guests: ${guest.total_guests}
-Approve at: ${adminUrl}/admin
+Approve at: ${siteUrl}/admin
 If text message, reply "YES" to approve, "NO" to deny.
 `.trim();
 }
@@ -75,15 +75,15 @@ Approve at: ${adminUrl}/admin
  * Pure function for testability
  * 
  * @param guest Guest information
- * @param credentialsUrl URL for guest credentials
+ * @param passUrl URL for guest pass
  * @returns Formatted message string
  */
 export async function formatApprovalMessage(
   guest: GuestInfo,
-  credentialsUrl: string
+  passUrl: string
 ): Promise<string> {
-  if (!guest || !credentialsUrl) {
-    throw new Error('Guest information and credentials URL are required');
+  if (!guest || !passUrl) {
+    throw new Error('Guest information and pass URL are required');
   }
 
   const formattedDate = await formatDateString(guest.visit_date);
@@ -96,7 +96,7 @@ Date: ${formattedDate}
 Time: ${guest.gathering_time}
 Guests: ${guest.total_guests}
 
-Your credentials: ${credentialsUrl}
+Your guest pass: ${passUrl}
 
 Please save this link - you'll need it for check-in.
 `.trim();

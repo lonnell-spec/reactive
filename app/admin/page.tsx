@@ -7,17 +7,26 @@ import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 // Separate component to handle URL parameters with Suspense
-function UrlParamsHandler({ onResetParam }: { onResetParam: (reset: boolean) => void }) {
+function UrlParamsHandler({ onResetParam, onRedirectParam }: { 
+  onResetParam: (reset: boolean) => void
+  onRedirectParam: (redirect: string | null) => void 
+}) {
   // Import useSearchParams inside the component that's wrapped with Suspense
   const { useSearchParams } = require('next/navigation')
   const searchParams = useSearchParams()
   
   useEffect(() => {
     const reset = searchParams.get('reset')
+    const redirect = searchParams.get('redirect')
+    
     if (reset === 'true') {
       onResetParam(true)
     }
-  }, [searchParams, onResetParam])
+    
+    if (redirect) {
+      onRedirectParam(redirect)
+    }
+  }, [searchParams, onResetParam, onRedirectParam])
   
   return null // This component doesn't render anything
 }
@@ -27,6 +36,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isReset, setIsReset] = useState(false)
+  const [redirectPath, setRedirectPath] = useState<string | null>(null)
   const router = useRouter()
 
   const handleResetParam = (reset: boolean) => {
@@ -35,6 +45,10 @@ export default function AdminPage() {
       setIsReset(true)
       // You could show a password reset form here
     }
+  }
+
+  const handleRedirectParam = (redirect: string | null) => {
+    setRedirectPath(redirect)
   }
 
   useEffect(() => {
@@ -79,6 +93,10 @@ export default function AdminPage() {
         
         if (event === 'SIGNED_IN') {
           setUser(session?.user || null)
+          // Handle redirect after login
+          if (redirectPath) {
+            router.push(redirectPath)
+          }
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
         } else if (event === 'PASSWORD_RECOVERY') {
@@ -117,7 +135,7 @@ export default function AdminPage() {
     <>
       {/* Wrap the component that uses useSearchParams in Suspense */}
       <Suspense fallback={null}>
-        <UrlParamsHandler onResetParam={handleResetParam} />
+        <UrlParamsHandler onResetParam={handleResetParam} onRedirectParam={handleRedirectParam} />
       </Suspense>
 
       {loading ? (

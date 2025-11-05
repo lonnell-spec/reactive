@@ -62,6 +62,7 @@ export async function validateRegistrationCode(
  * 
  * @param email User's email
  * @param password User's password
+ * @param phone User's phone number
  * @param role User's role
  * @param dependencies Injectable dependencies for testing
  * @returns Object with success status and message
@@ -69,10 +70,11 @@ export async function validateRegistrationCode(
 export async function createUserWithRole(
   email: string,
   password: string,
+  phone: string,
   role: string,
   dependencies: {
     getSupabaseClient?: typeof getSupabaseServiceClient;
-    createUserData?: (email: string, password: string, role: string) => Promise<any>;
+    createUserData?: (email: string, password: string, phone: string, role: string) => Promise<any>;
   } = {}
 ) {
   const {
@@ -81,7 +83,7 @@ export async function createUserWithRole(
   } = dependencies;
 
   // Validate inputs using pure function
-  const validation = await validateUserCreationInputs(email, password, role);
+  const validation = await validateUserCreationInputs(email, password, phone, role);
   if (!validation.isValid) {
     return {
       success: false,
@@ -93,7 +95,7 @@ export async function createUserWithRole(
     const supabaseService = await getSupabaseClient();
     
     // Prepare user creation data using pure function
-    const userData = await createUserData(email, password, role);
+    const userData = await createUserData(email, password, phone, role);
 
     // Create the user
     const { data, error } = await supabaseService.auth.admin.createUser(userData);
@@ -120,13 +122,15 @@ export async function createUserWithRole(
  * Pure function for testability
  * 
  * @param email User's email
- * @param password User's password  
+ * @param password User's password
+ * @param phone User's phone number
  * @param role User's role
  * @returns Validation result
  */
 export async function validateUserCreationInputs(
   email: string,
   password: string,
+  phone: string,
   role: string
 ): Promise<ValidationResponse> {
   // Validate email format
@@ -142,6 +146,14 @@ export async function validateUserCreationInputs(
     return {
       isValid: false,
       message: 'Password must be at least 6 characters long'
+    };
+  }
+
+  // Validate phone number (basic validation)
+  if (!phone || phone.trim().length < 10) {
+    return {
+      isValid: false,
+      message: 'Please provide a valid phone number'
     };
   }
 
@@ -165,20 +177,25 @@ export async function validateUserCreationInputs(
  * 
  * @param email User's email
  * @param password User's password
+ * @param phone User's phone number
  * @param role User's role
  * @returns User creation data object
  */
 export async function createUserCreationData(
   email: string,
   password: string,
+  phone: string,
   role: string
 ): Promise<any> {
   return {
     email,
     password,
+    phone,
     email_confirm: true, // Auto-confirm email
+    phone_confirm: false, // Don't require phone verification for now
     user_metadata: {
-      role
+      role,
+      phone
     },
     app_metadata: {
       role

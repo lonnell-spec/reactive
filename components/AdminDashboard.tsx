@@ -10,7 +10,7 @@ import { LogOut, RefreshCw, Shield } from 'lucide-react'
 import { FloatingElements } from './FloatingElements'
 import Image from 'next/image'
 import { GuestStatus } from '@/lib/types'
-import { preApproveGuest, denyPreApproval, approveGuest, denyGuest } from '@/lib/admin-client-actions'
+import { preApproveGuest, denyPreApproval, approveGuest, denyGuest } from '@/lib/admin-actions'
 import { determineUserRoles, UserRoles } from '@/lib/user-role-utils'
 import { formatGuestDataList, Submission } from '@/lib/data-formatting-utils'
 import { GuestDetailsModal } from './GuestDetailsModal'
@@ -21,11 +21,12 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 interface AdminDashboardProps {
   user: any
   onLogout: () => void
+  initialExternalGuestId?: string
 }
 
 
 
-export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
+export function AdminDashboard({ user, onLogout, initialExternalGuestId }: AdminDashboardProps) {
   const router = useRouter()
   const [guestSubmissions, setGuestSubmissions] = useState<Submission[]>([])
   const [completedSubmissions, setCompletedSubmissions] = useState<Submission[]>([])
@@ -36,6 +37,8 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const [statusMsg, setStatusMsg] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
   const [userRoles, setUserRoles] = useState<UserRoles>({ isPreApprover: false, isAdmin: false })
+  const [loadingSpecificGuest, setLoadingSpecificGuest] = useState(false)
+  const [hasProcessedInitialGuest, setHasProcessedInitialGuest] = useState(false)
 
   // Check user roles on mount
   useEffect(() => {
@@ -49,6 +52,14 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   useEffect(() => {
     loadSubmissions()
   }, [userRoles, showCompleted])
+
+  // Handle initial external guest ID after submissions are loaded
+  useEffect(() => {
+    if (initialExternalGuestId && !loading && !loadingSpecificGuest && !hasProcessedInitialGuest && (guestSubmissions.length > 0 || completedSubmissions.length > 0)) {
+      loadSpecificGuest(initialExternalGuestId)
+      setHasProcessedInitialGuest(true)
+    }
+  }, [initialExternalGuestId, loading, loadingSpecificGuest, hasProcessedInitialGuest, guestSubmissions, completedSubmissions])
   
   // Load all submissions based on user roles
   const loadSubmissions = async () => {
@@ -80,6 +91,52 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
     } catch (err) {
       // Default to no permissions
       setUserRoles({ isPreApprover: false, isAdmin: false });
+    }
+  }
+
+  // Find guest by external_guest_id and return internal id
+  const findGuestByExternalId = async (externalGuestId: string): Promise<string | null> => {
+    try {
+      const supabaseAuthClient = createClientComponentClient()
+      const { data, error } = await supabaseAuthClient
+        .from('guests')
+        .select('id')
+        .eq('external_guest_id', externalGuestId)
+        .single()
+      
+      if (error || !data) {
+        return null
+      }
+      
+      return data.id
+    } catch (err) {
+      return null
+    }
+  }
+
+  // Load specific guest by external ID after submissions are loaded
+  const loadSpecificGuest = async (externalGuestId: string) => {
+    setLoadingSpecificGuest(true)
+    try {
+      const internalId = await findGuestByExternalId(externalGuestId)
+      
+      if (internalId) {
+        // Check if the guest is in our loaded submissions
+        const allSubmissions = [...guestSubmissions, ...completedSubmissions]
+        const foundSubmission = allSubmissions.find(sub => sub.id === internalId)
+        
+        if (foundSubmission) {
+          setActiveSubmission(internalId)
+        } else {
+          setError(`Guest submission not found or you don't have permission to view it.`)
+        }
+      } else {
+        setError(`Invalid guest link. The guest submission could not be found.`)
+      }
+    } catch (err) {
+      setError('Failed to load specific guest submission.')
+    } finally {
+      setLoadingSpecificGuest(false)
     }
   }
 
@@ -127,7 +184,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const handlePreApprove = async (id: string) => {
     setActionLoading(id)
     try {
-      const result = await preApproveGuest(id)
+      const result = await preApproveGuest(id, user.email)
       
       if (!result.success) {
         throw new Error(result.message)
@@ -148,7 +205,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const handlePreApprovalDeny = async (id: string) => {
     setActionLoading(id)
     try {
-      const result = await denyPreApproval(id, "Your pre-approval request has been denied.")
+      const result = await denyPreApproval(id, user.email, "Your pre-approval request has been denied.")
       
       if (!result.success) {
         throw new Error(result.message)
@@ -202,9 +259,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const handleApprove = async (id: string) => {
     setActionLoading(id)
     try {
-      const result = await approveGuest(id, {
-        getCurrentUser: () => user
-      })
+      const result = await approveGuest(id, user.email)
       
       if (!result.success) {
         throw new Error(result.message)
@@ -225,9 +280,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const handleDeny = async (id: string) => {
     setActionLoading(id)
     try {
-      const result = await denyGuest(id, "Your registration has been denied by an administrator.", {
-        getCurrentUser: () => user
-      })
+      const result = await denyGuest(id, user.email, "Your registration has been denied by an administrator.")
       
       if (!result.success) {
         throw new Error(result.message)

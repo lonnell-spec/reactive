@@ -23,10 +23,10 @@ interface GuestInfo {
  */
 export async function formatPreApproverMessage(
   guest: GuestInfo,
-  siteUrl: string
+  passViewUrl: string
 ): Promise<string> {
-  if (!guest || !siteUrl) {
-    throw new Error('Guest information and admin URL are required');
+  if (!guest || !passViewUrl) {
+    throw new Error('Guest information and URL are required');
   }
 
   const formattedDate = await formatDateString(guest.visit_date);
@@ -37,8 +37,7 @@ Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
 Visit Date: ${formattedDate}
 Time: ${guest.gathering_time}
 Guests: ${guest.total_guests}
-Approve at: ${siteUrl}/admin
-If text message, reply "YES" to approve, "NO" to deny.
+Approve at: ${passViewUrl}
 `.trim();
 }
 
@@ -47,14 +46,14 @@ If text message, reply "YES" to approve, "NO" to deny.
  * Pure function for testability
  * 
  * @param guest Guest information
- * @param adminUrl URL for admin approval
+ * @param deepLinkUrl URL for deep link to a guest detail
  * @returns Formatted message string
  */
 export async function formatApproverMessage(
   guest: GuestInfo,
-  adminUrl: string
+  deepLinkUrl: string
 ): Promise<string> {
-  if (!guest || !adminUrl) {
+  if (!guest || !deepLinkUrl) {
     throw new Error('Guest information and admin URL are required');
   }
 
@@ -62,11 +61,11 @@ export async function formatApproverMessage(
 
   return `
 New guest registration requires approval:
-Name: ${guest.first_name} ${guest.last_name}
+Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
 Visit Date: ${formattedDate}
 Time: ${guest.gathering_time}
 Guests: ${guest.total_guests}
-Approve at: ${adminUrl}/admin
+Approve at: ${deepLinkUrl}
 `.trim();
 }
 
@@ -112,7 +111,7 @@ Please save this link - you'll need it for check-in.
  */
 export async function formatDenialMessage(
   guest: GuestInfo,
-  reason: string
+  churchContactEmail: string
 ): Promise<string> {
   if (!guest) {
     throw new Error('Guest information is required');
@@ -121,10 +120,35 @@ export async function formatDenialMessage(
   const formattedDate = await formatDateString(guest.visit_date);
 
   return `
-We're sorry, but your guest registration for ${formattedDate} has been declined.
+We regret to inform you that your visit to Formation Church on ${formattedDate} has not been approved.
 
-${reason ? `Reason: ${reason}` : ''}
-
-Please contact us if you have any questions.
+If you have any questions, please contact us at ${churchContactEmail}.
 `.trim();
+}
+
+
+/**
+ * Formats a pre-approval notification message
+ * Pure function for testability
+ * 
+ * @param guest Guest information
+ * @returns Formatted message string
+ */
+export async function formatPreApprovalMessage(
+  guest: GuestInfo
+  
+): Promise<string> { 
+  if (!guest) {
+    throw new Error('Guest information is required');
+  }
+
+  const formattedDate = await formatDateString(guest.visit_date);
+
+  return `
+  Great news! Your visit to Formation Church has been pre-approved!
+
+  Please wait for final approval. You will receive another message with your guest pass when approved.
+
+  We look forward to seeing you on ${formattedDate} at ${guest.gathering_time}.
+  `;
 }

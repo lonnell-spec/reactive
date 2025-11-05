@@ -140,7 +140,7 @@ export async function generateCodeWord(
 
   const randomColor = colors[Math.floor(randomFn() * colors.length)];
   const randomNoun = nouns[Math.floor(randomFn() * nouns.length)];
-  const randomDigits = Math.floor(randomFn() + 1000 * 9000).toString();
+  const randomDigits = Math.floor(randomFn() * 9000 + 1000).toString();
 
   return `${randomColor}${randomNoun}${randomDigits}`;
 }
@@ -208,4 +208,34 @@ export async function generateUniqueCodeWord(
   
   // This should never be reached, but TypeScript requires it
   throw new Error('Unexpected error in code word generation');
+}
+
+/**
+ * Generates a URL for the pass view page
+ * 
+ * @param passId The pass ID to generate a URL for
+ * @returns Promise<string> The URL for the pass view page
+ */
+export async function generatePassViewUrl(passId: string) {
+  return `${process.env.APP_URL}/pass/view/${passId}`;
+}
+
+/**
+ * Generates a URL for the admin page to deep link to a guest detail
+ * 
+ * @param external_guest_id The external guest ID to generate a URL for
+ * @returns Promise<string> The URL for the admin page deep link to a guest detail
+ */
+export async function generateDeepLinkUrl(external_guest_id: string) {
+  return `${process.env.APP_URL}/admin/${external_guest_id}`;
+}
+
+/**
+ * Generates a URL for the admin page to deep link to a guest verification page
+ * 
+ * @param passId The pass ID to generate a URL for
+ * @returns Promise<string> The URL for the admin page deep link to a guest verification
+ */
+export async function generatePassVerificationUrl(passId: string) {
+  return `${process.env.APP_URL}/admin/verification/${passId}`;
 }

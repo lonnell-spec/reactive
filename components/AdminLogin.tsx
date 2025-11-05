@@ -30,6 +30,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [phone, setPhone] = useState('')
   const [adminCode, setAdminCode] = useState('')
   const [userRole, setUserRole] = useState('admin')
 
@@ -58,7 +59,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setError('')
     setMessage('')
     
-    const result = await registerUser(email, password, confirmPassword, adminCode, userRole)
+    const result = await registerUser(email, password, confirmPassword, phone, adminCode, userRole)
     
     if (result.success) {
       setMessage(result.message)
@@ -68,6 +69,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
       setAdminCode('')
       setPassword('')
       setConfirmPassword('')
+      setPhone('')
     } else {
       setError(result.message)
     }
@@ -234,6 +236,18 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
+                        className="border-2 border-gray-300 focus:border-red-600 py-4"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="phone" className="text-xl">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        required
+                        placeholder="(555) 123-4567"
                         className="border-2 border-gray-300 focus:border-red-600 py-4"
                       />
                     </div>

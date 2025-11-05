@@ -5,11 +5,10 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Search, ArrowLeft, Key } from 'lucide-react'
+import { ArrowLeft, Search } from 'lucide-react'
 import { PassDetailsDisplay } from '@/components/PassDetailsDisplay'
-import { verifyGuestPass, markPassAsUsed, PassVerificationResult, searchGuestByCodeWord, searchGuestByPhone } from '@/lib/pass-verification'
+import { verifyGuestPass, markPassAsUsed, PassVerificationResult } from '@/lib/pass-verification'
 import { FloatingElements } from '@/components/FloatingElements'
 import Image from 'next/image'
 
@@ -22,10 +21,6 @@ export default function AdminVerificationWithPassIdPage() {
   const [verificationResult, setVerificationResult] = useState<PassVerificationResult | null>(null)
   const [isMarkingAttended, setIsMarkingAttended] = useState(false)
   const [error, setError] = useState('')
-  const [showAlternativeSearch, setShowAlternativeSearch] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [searchType, setSearchType] = useState<'code_word' | 'phone'>('code_word')
-  const [isSearching, setIsSearching] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -66,44 +61,13 @@ export default function AdminVerificationWithPassIdPage() {
       setVerificationResult(result)
       
       if (!result.success) {
-        // If pass ID not found, show alternative search options
-        setShowAlternativeSearch(true)
+        setError(result.message || 'Pass verification failed')
       }
     } catch (err) {
       setError('Failed to verify pass')
-      setShowAlternativeSearch(true)
     }
   }
 
-  const handleAlternativeSearch = async () => {
-    if (!searchTerm.trim()) {
-      setError(`Please enter a ${searchType === 'code_word' ? 'code word' : 'phone number'}`)
-      return
-    }
-
-    setIsSearching(true)
-    setError('')
-    
-    try {
-      let result: PassVerificationResult
-      
-      if (searchType === 'code_word') {
-        result = await searchGuestByCodeWord(searchTerm.trim())
-      } else {
-        result = await searchGuestByPhone(searchTerm.trim())
-      }
-      
-      setVerificationResult(result)
-      
-      if (!result.success) {
-        setError(result.message || `Guest not found with that ${searchType === 'code_word' ? 'code word' : 'phone number'}`)
-      }
-    } catch (err) {
-      setError(`Failed to search by ${searchType}`)
-    } finally {
-      setIsSearching(false)
-    }
-  }
 
   const handleMarkAttended = async () => {
     if (!user?.email || !verificationResult?.guest?.id) return
@@ -129,11 +93,6 @@ export default function AdminVerificationWithPassIdPage() {
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleAlternativeSearch()
-    }
-  }
 
   if (loading) {
     return (
@@ -210,77 +169,6 @@ export default function AdminVerificationWithPassIdPage() {
           </Alert>
         )}
 
-        {/* Alternative Search (shown if pass ID not found) */}
-        {showAlternativeSearch && (
-          <Card className="border-2 border-blue-200 shadow-md mb-8">
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center">
-                <Key className="w-5 h-5 mr-2" />
-                Alternative Search
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-600">
-                Pass ID not found. Try searching by the guest's code word or phone number instead.
-              </p>
-              
-              {/* Search Type Selector */}
-              <div className="flex gap-2">
-                <Button
-                  variant={searchType === 'code_word' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSearchType('code_word')}
-                  className={searchType === 'code_word' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-                >
-                  Code Word
-                </Button>
-                <Button
-                  variant={searchType === 'phone' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSearchType('phone')}
-                  className={searchType === 'phone' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-                >
-                  Phone Number
-                </Button>
-              </div>
-              
-              {/* Search Input */}
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Input
-                    type="text"
-                    placeholder={
-                      searchType === 'code_word' 
-                        ? "Enter guest's code word (e.g., happy-elephant)" 
-                        : "Enter guest's phone number (e.g., 555-123-4567)"
-                    }
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="text-lg"
-                  />
-                </div>
-                <Button
-                  onClick={handleAlternativeSearch}
-                  disabled={isSearching || !searchTerm.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-8"
-                >
-                  {isSearching ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      Searching...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="w-4 h-4 mr-2" />
-                      Search
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Verification Results */}
         {verificationResult && (
@@ -292,7 +180,7 @@ export default function AdminVerificationWithPassIdPage() {
         )}
 
         {/* Instructions */}
-        {!verificationResult && !showAlternativeSearch && (
+        {!verificationResult && (
           <Card className="border-2 border-gray-200 shadow-md">
             <CardContent className="p-8 text-center">
               <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4 animate-spin" />

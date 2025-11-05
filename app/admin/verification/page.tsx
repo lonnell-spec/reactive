@@ -212,13 +212,13 @@ export default function AdminVerificationPage() {
         </Card>
 
         {/* Error Message */}
-        {error && (
+        {/* {error && (
           <Alert className="border-2 border-red-600 bg-red-50 mb-8">
             <AlertDescription className="text-red-800">
               {error}
             </AlertDescription>
           </Alert>
-        )}
+        )} */}
 
         {/* Verification Results */}
         {verificationResult && (

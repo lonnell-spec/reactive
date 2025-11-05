@@ -71,6 +71,7 @@ export async function signInUser(
  * @param email User's email
  * @param password User's password
  * @param confirmPassword Confirmation password
+ * @param phone User's phone number
  * @param adminCode Registration code
  * @returns Validation result
  */
@@ -78,10 +79,11 @@ export async function validateSignUpInputs(
   email: string,
   password: string,
   confirmPassword: string,
+  phone: string,
   adminCode: string
 ): Promise<{ isValid: boolean; message: string }> {
   // Check required fields
-  if (!email || !password || !confirmPassword || !adminCode) {
+  if (!email || !password || !confirmPassword || !phone || !adminCode) {
     return {
       isValid: false,
       message: 'All fields are required'
@@ -117,6 +119,7 @@ export async function validateSignUpInputs(
  * @param email User's email
  * @param password User's password
  * @param confirmPassword Confirmation password
+ * @param phone User's phone number
  * @param adminCode Registration code
  * @param userRole User's role
  * @param dependencies Injectable dependencies for testing
@@ -125,6 +128,7 @@ export async function registerUser(
   email: string,
   password: string,
   confirmPassword: string,
+  phone: string,
   adminCode: string,
   userRole: string,
   dependencies: {
@@ -138,7 +142,7 @@ export async function registerUser(
   } = dependencies;
 
   // Validate form inputs
-  const validation = await validateSignUpInputs(email, password, confirmPassword, adminCode);
+  const validation = await validateSignUpInputs(email, password, confirmPassword, phone, adminCode);
   if (!validation.isValid) {
     return {
       success: false,
@@ -158,7 +162,7 @@ export async function registerUser(
     }
 
     // Create user account
-    const createResult = await createUserFn(email, password, userRole);
+    const createResult = await createUserFn(email, password, phone, userRole);
     
     if (!createResult.success) {
       return {

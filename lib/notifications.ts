@@ -324,6 +324,14 @@ export async function sendApproverNotification(guestId: string) {
  */
 export async function notifyGuestOfPreApproval(guestId: string) {
   try {
+
+    if (process.env.NOTIFICATION_NOTIFY_GUESTS?.toLowerCase() === 'false') {
+      return {
+        success: true,
+        message: 'Guest notification disabled'
+      };
+    }
+
     // Get the guest details from Supabase
     const supabaseService = await getSupabaseServiceClient();
     
@@ -402,6 +410,13 @@ export async function notifyGuestOfPreApproval(guestId: string) {
  */
 export async function notifyGuestOfApproval(guestId: string) {
   try {
+    if (process.env.NOTIFICATION_NOTIFY_GUESTS?.toLowerCase() === 'false') {
+      return {
+        success: true,
+        message: 'Guest notification disabled'
+      };
+    }
+
     // Get the guest details from Supabase
     const supabaseService = await getSupabaseServiceClient();
     
@@ -482,6 +497,13 @@ export async function notifyGuestOfApproval(guestId: string) {
  */
 export async function notifyGuestOfDenial(guestId: string) {
   try {
+    if (process.env.NOTIFICATION_NOTIFY_GUESTS?.toLowerCase() === 'false') {
+      return {
+        success: true,
+        message: 'Guest notification disabled'
+      };
+    }
+
     // Get the guest details from Supabase
     const supabaseService = await getSupabaseServiceClient();
     

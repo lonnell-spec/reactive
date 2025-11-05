@@ -125,7 +125,8 @@ async function getEmailAddressesByRole(role: string, fallbackRole: string | unde
  */
 async function sendSMSToMultipleNumbers(
   phoneNumbers: string[], 
-  message: string
+  message: string,
+  externalGuestId?: string
 ): Promise<{ success: boolean; successCount: number; totalCount: number }> {
   let successCount = 0;
   const totalCount = phoneNumbers.length;
@@ -135,6 +136,7 @@ async function sendSMSToMultipleNumbers(
       const { success, error } = await sendTextMagicSMS({
         phone: phone,
         message: message,
+        externalGuestId: externalGuestId,
       });
       
       if (success) {
@@ -236,7 +238,7 @@ export async function sendPreApproverNotification(guestId: string) {
     let emailSuccess = false;
 
     if (phoneNumbers.length > 0) {
-      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, textMessage);
+      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, textMessage, guest.external_guest_id);
       smsSuccess = smsResult.success;
     }
 
@@ -296,7 +298,7 @@ export async function sendApproverNotification(guestId: string) {
     let emailSuccess = false;
 
     if (phoneNumbers.length > 0) {
-      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, textMessage);
+      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, textMessage, guest.external_guest_id);
       smsSuccess = smsResult.success;
     }
 

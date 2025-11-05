@@ -6,6 +6,7 @@ interface TextMagicSendParams {
   phone: string;
   message: string;
   from?: string;
+  externalGuestId?: string;
 }
 
 interface TextMagicEmailParams {
@@ -68,7 +69,7 @@ export async function validateEmailFormat(email: string): Promise<string> {
   return email.toLowerCase().trim();
 }
 
-export async function sendTextMagicSMS({ phone, message, from }: TextMagicSendParams) {
+export async function sendTextMagicSMS({ phone, message, from, externalGuestId }: TextMagicSendParams) {
   try {
     // Check if we're in development mode
     if (process.env.SEND_TEXT_MESSAGES?.toLowerCase() === 'true') {
@@ -95,6 +96,7 @@ export async function sendTextMagicSMS({ phone, message, from }: TextMagicSendPa
           phones: formattedPhone,
           text: message,
           from: from || undefined,
+          referenceId: externalGuestId || undefined,
         }),
       });
 

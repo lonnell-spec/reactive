@@ -9,6 +9,7 @@ import { parseFormBoolean, parseChildrenWithPhotos, getFormString } from './form
 import { fileToBuffer, generateProfilePicturePath, uploadChildPhoto, prepareProfilePictureUpload } from './storage-utils';
 import { mapFormDataToGuestRecord, mapChildInfoToRecord, createGuestProfileUpdateRecord, createChildPhotoUpdateRecord } from './database-utils';
 import { calculateExpireDateTime } from './date-utils';
+import { generateUniqueRandom9DigitInteger } from './random-utils';
 
 
 /**
@@ -232,8 +233,23 @@ async function insertGuest(supabaseService: Awaited<ReturnType<typeof getSupabas
   const visitDate = new Date(parsedData.visitDate);
   const expiresAt = await calculateExpireDateTime(visitDate);
   
+  // Generate unique 9-digit random integer for text callback reference
+  const textCallbackReferenceId = await generateUniqueRandom9DigitInteger(
+    async (value: number) => {
+      // Check if this reference ID already exists
+      const { data, error } = await supabaseService
+        .from('guests')
+        .select('id')
+        .eq('text_callback_reference_id', value)
+        .single();
+      
+      // Return true if unique (no existing record found)
+      return error !== null || data === null;
+    }
+  );
+  
   // Map form data to database record using pure utility
-  const guestRecord = await mapFormDataToGuestRecord(parsedData, expiresAt);
+  const guestRecord = await mapFormDataToGuestRecord(parsedData, expiresAt, textCallbackReferenceId);
   
   const { data: guest, error: guestError } = await supabaseService
     .from('guests')

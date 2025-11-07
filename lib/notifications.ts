@@ -138,6 +138,7 @@ async function sendSMSToMultipleNumbers(
         message: message,
         externalGuestId: externalGuestId,
       };
+      console.log('Sending SMS to', payload);
       const { success, error } = await sendTextMagicSMS(payload);
       
       if (success) {

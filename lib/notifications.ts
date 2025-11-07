@@ -133,11 +133,12 @@ async function sendSMSToMultipleNumbers(
   
   for (const phone of phoneNumbers) {
     try {
-      const { success, error } = await sendTextMagicSMS({
+      const payload = {
         phone: phone,
         message: message,
         externalGuestId: externalGuestId,
-      });
+      };
+      const { success, error } = await sendTextMagicSMS(payload);
       
       if (success) {
         successCount++;

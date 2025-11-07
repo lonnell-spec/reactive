@@ -6,7 +6,7 @@ interface TextMagicSendParams {
   phone: string;
   message: string;
   from?: string;
-  externalGuestId?: string;
+  referenceId?: number;
 }
 
 interface TextMagicEmailParams {
@@ -69,10 +69,10 @@ export async function validateEmailFormat(email: string): Promise<string> {
   return email.toLowerCase().trim();
 }
 
-export async function sendTextMagicSMS({ phone, message, from, externalGuestId }: TextMagicSendParams) {
+export async function sendTextMagicSMS({ phone, message, from, referenceId }: TextMagicSendParams) {
   try {
-    // Check if we're in development mode
-    if (process.env.SEND_TEXT_MESSAGES?.toLowerCase() === 'true') {
+    // Check if we're in production mode
+    if (process.env.TEXTMAGIC_SEND_LIVE === 'true') {
       // Production mode - continue with actual TextMagic API call
       const username = process.env.TEXTMAGIC_USERNAME;
       const apiKey = process.env.TEXTMAGIC_API_KEY;
@@ -96,7 +96,7 @@ export async function sendTextMagicSMS({ phone, message, from, externalGuestId }
           phones: formattedPhone,
           text: message,
           from: from || undefined,
-          referenceId: externalGuestId || undefined,
+          referenceId: referenceId || undefined,
         }),
       }
       console.log('Sending SMS to TextMagic:', payload);

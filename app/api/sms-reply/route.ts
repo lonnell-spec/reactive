@@ -11,32 +11,39 @@ export async function POST(request: NextRequest) {
   try {
     // Extract form data from the TextMagic webhook
     const formData = await request.formData()
-    const referenceId = formData.get('referenceId') as string
+    const referenceIdStr = formData.get('referenceId') as string
     const text = formData.get('text') as string
 
     // Log the incoming webhook for debugging
     console.log('SMS Reply Webhook received:', {
-      referenceId,
+      referenceId: referenceIdStr,
       text,
       timestamp: new Date().toISOString()
     })
 
     // Validate required fields
-    if (!referenceId || !text) {
-      console.log('Missing required fields in SMS webhook:', { referenceId, text })
+    if (!referenceIdStr || !text) {
+      console.log('Missing required fields in SMS webhook:', { referenceId: referenceIdStr, text })
       return new Response(null, { status: 200 })
     }
 
-    // Get the guest record using the external_guest_id (referenceId)
+    // Parse referenceId as integer
+    const referenceId = parseInt(referenceIdStr)
+    if (isNaN(referenceId)) {
+      console.log('Invalid referenceId format, expected integer:', referenceIdStr)
+      return new Response(null, { status: 200 })
+    }
+
+    // Get the guest record using the text_callback_reference_id
     const supabaseService = await getSupabaseServiceClient()
     const { data: guest, error: guestError } = await supabaseService
       .from('guests')
       .select('*')
-      .eq('external_guest_id', referenceId)
+      .eq('text_callback_reference_id', referenceId)
       .single()
 
     if (guestError || !guest) {
-      console.log('Guest not found for external_guest_id:', referenceId, guestError?.message)
+      console.log('Guest not found for text_callback_reference_id:', referenceId, guestError?.message)
       return new Response(null, { status: 200 })
     }
 

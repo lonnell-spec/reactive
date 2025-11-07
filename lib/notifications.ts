@@ -121,25 +121,24 @@ async function getEmailAddressesByRole(role: string, fallbackRole: string | unde
  * 
  * @param phoneNumbers Array of phone numbers to send to
  * @param message The message to send
+ * @param textCallbackReferenceId Optional reference ID for SMS callbacks
  * @returns Object with success status and count of successful sends
  */
 async function sendSMSToMultipleNumbers(
   phoneNumbers: string[], 
   message: string,
-  externalGuestId?: string
+  textCallbackReferenceId?: number
 ): Promise<{ success: boolean; successCount: number; totalCount: number }> {
   let successCount = 0;
   const totalCount = phoneNumbers.length;
   
   for (const phone of phoneNumbers) {
     try {
-      const payload = {
+      const { success, error } = await sendTextMagicSMS({
         phone: phone,
         message: message,
-        externalGuestId: externalGuestId,
-      };
-      console.log('Sending SMS to', payload);
-      const { success, error } = await sendTextMagicSMS(payload);
+        referenceId: textCallbackReferenceId,
+      });
       
       if (success) {
         successCount++;
@@ -240,7 +239,7 @@ export async function sendPreApproverNotification(guestId: string) {
     let emailSuccess = false;
 
     if (phoneNumbers.length > 0) {
-      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, textMessage, guest.external_guest_id);
+      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, textMessage, guest.text_callback_reference_id);
       smsSuccess = smsResult.success;
     }
 
@@ -300,7 +299,7 @@ export async function sendApproverNotification(guestId: string) {
     let emailSuccess = false;
 
     if (phoneNumbers.length > 0) {
-      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, textMessage, guest.external_guest_id);
+      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, textMessage, guest.text_callback_reference_id);
       smsSuccess = smsResult.success;
     }
 

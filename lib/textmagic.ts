@@ -85,7 +85,7 @@ export async function sendTextMagicSMS({ phone, message, from, externalGuestId }
       // Format phone number to E.164 format
       const formattedPhone = await formatPhoneToE164(phone);
 
-      const response = await fetch(textMagicUrl, {
+      const payload = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +98,9 @@ export async function sendTextMagicSMS({ phone, message, from, externalGuestId }
           from: from || undefined,
           referenceId: externalGuestId || undefined,
         }),
-      });
+      }
+      console.log('Sending SMS to TextMagic:', payload);
+      const response = await fetch(textMagicUrl, payload);
 
       if (!response.ok) {
         const errorData = await response.json();

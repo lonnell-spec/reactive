@@ -72,7 +72,7 @@ export async function validateEmailFormat(email: string): Promise<string> {
 export async function sendTextMagicSMS({ phone, message, from, referenceId }: TextMagicSendParams) {
   try {
     // Check if we're in production mode
-    if (process.env.TEXTMAGIC_SEND_LIVE === 'true') {
+    if (process.env.SEND_TEXT_MESSAGES === 'true') {
       // Production mode - continue with actual TextMagic API call
       const username = process.env.TEXTMAGIC_USERNAME;
       const apiKey = process.env.TEXTMAGIC_API_KEY;
@@ -168,7 +168,7 @@ export async function sendTextMagicEmail({ email, message, subject, from }: Text
           to: validatedEmail,
           subject: subject || 'Church Guest Registration Notification',
           text: message,
-          from: from || process.env.TEXTMAGIC_EMAIL_FROM || undefined,
+          from: from || undefined,
         }),
       });
 

@@ -11,11 +11,13 @@ begin
   return new;
 end;$$;
 
+CREATE SEQUENCE IF NOT EXISTS guests_text_callback_reference_id_seq;
+GRANT USAGE, SELECT ON SEQUENCE guests_text_callback_reference_id_seq TO authenticated;
 -- Guests table
 create table if not exists public.guests (
   id uuid primary key default gen_random_uuid(),
   external_guest_id uuid unique default gen_random_uuid(),
-  text_callback_reference_id serial unique,
+  text_callback_reference_id integer unique default nextval('guests_text_callback_reference_id_seq'),
   status text not null default 'pending_pre_approval',
   first_name text not null,
   last_name text not null,
@@ -67,78 +69,3 @@ create table if not exists public.guest_children (
 );
 
 create index if not exists idx_guest_children_guest_id on public.guest_children(guest_id);
-
-
--- Security definer function to pre-approve a guest. Has to be done this way to avoid RLS conflicts.
-create or replace function public.pre_approve_guest(
-  guest_id uuid
-)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  is_pre_approver boolean;
-  admin_email text;
-begin
-  -- First, confirm the user has the 'pre_approver' role
-  select (auth.jwt() -> 'app_metadata' ->> 'role') = 'pre_approver' or (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-  into is_pre_approver;
-  
-  -- Get the current user's email
-  select auth.jwt() ->> 'email' into admin_email;
-
-  if is_pre_approver then
-    -- Now, perform the privileged update.
-    -- The update bypasses RLS because this function is a security definer.
-    update public.guests
-    set 
-      status = 'pending',
-      pre_approved_by = admin_email,
-      pre_approved_at = now()
-    where id = guest_id and status = 'pending_pre_approval';
-  else
-    raise exception 'You do not have permission to pre-approve guests.';
-  end if;
-end;
-$$;
-
-grant execute on function public.pre_approve_guest(uuid) to authenticated;
-
--- Security definer function to deny pre-approval for a guest
-create or replace function public.deny_pre_approve_guest(
-  guest_id uuid
-)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  is_pre_approver boolean;
-  admin_email text;
-begin
-  -- First, confirm the user has the 'pre_approver' role
-  select (auth.jwt() -> 'app_metadata' ->> 'role') = 'pre_approver' or (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-  into is_pre_approver;
-  
-  -- Get the current user's email
-  select auth.jwt() ->> 'email' into admin_email;
-
-  if is_pre_approver then
-    -- Now, perform the privileged update.
-    -- The update bypasses RLS because this function is a security definer.
-    update public.guests
-    set 
-      status = 'pre_approval_denied',
-      pre_approval_denied_by = admin_email,
-      pre_approval_denied_at = now()
-    where id = guest_id and status = 'pending_pre_approval';
-  else
-    raise exception 'You do not have permission to deny pre-approval for guests.';
-  end if;
-end;
-$$;
-
-grant execute on function public.deny_pre_approve_guest(uuid) to authenticated;

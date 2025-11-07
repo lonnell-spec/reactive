@@ -242,6 +242,7 @@ async function insertGuest(supabaseService: Awaited<ReturnType<typeof getSupabas
     .single();
 
   if (guestError) {
+    console.error('Failed to submit guest information:', guestError);
     throw new Error('Failed to submit guest information');
   }
 

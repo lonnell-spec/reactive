@@ -8,62 +8,52 @@ import { isValidEmailFormat } from './string-utils';
 interface ValidationResponse {
   isValid: boolean
   message: string
-  role?: string
+  role?: string | null
 }
 
 /**
- * Validates a registration code against the appropriate role
+ * Validates a registration code and determines role assignment
  * 
  * @param code The registration code to validate
- * @param selectedRole The role that the user has selected
- * @returns ValidationResponse with validation result
+ * @returns ValidationResponse with validation result and role
  */
 export async function validateRegistrationCode(
-  code: string,
-  selectedRole: string
+  code: string
 ): Promise<ValidationResponse> {
-  // Validate role using pure function
-  if (!(await isValidRole(selectedRole))) {
+  // Check admin registration code first
+  const adminCode = await getRoleRegistrationCode('admin');
+  const generalCode = await getRoleRegistrationCode('general');
+
+  if (adminCode && code === adminCode) {
     return {
-      isValid: false,
-      message: 'Invalid role selected'
+      isValid: true,
+      message: 'Admin registration code validated successfully',
+      role: 'admin'
     };
   }
 
-  // Get registration code using pure function
-  const validCode = await getRoleRegistrationCode(selectedRole);
-
-  // Validate the code
-  if (!validCode) {
+  if (generalCode && code === generalCode) {
     return {
-      isValid: false,
-      message: 'Registration is not available for this role. Please contact the system administrator.'
-    };
-  }
-
-  if (code !== validCode) {
-    const roleName = await getRoleName(selectedRole);
-    return {
-      isValid: false,
-      message: `Invalid registration code for ${roleName}`
+      isValid: true,
+      message: 'Registration code validated successfully',
+      role: null // No role assigned for general registration
     };
   }
 
   return {
-    isValid: true,
-    message: 'Registration code validated successfully',
-    role: selectedRole
+    isValid: false,
+    message: 'Invalid registration code'
   };
 }
 
 /**
- * Creates a new user account with the specified role
+ * Creates a new user account with optional role assignment
  * Pure business logic with injectable dependencies
  * 
  * @param email User's email
  * @param password User's password
  * @param phone User's phone number
- * @param role User's role
+ * @param role Optional role to assign (admin gets assigned during registration)
  * @param dependencies Injectable dependencies for testing
  * @returns Object with success status and message
  */
@@ -71,10 +61,10 @@ export async function createUserWithRole(
   email: string,
   password: string,
   phone: string,
-  role: string,
+  role?: string | null,
   dependencies: {
     getSupabaseClient?: typeof getSupabaseServiceClient;
-    createUserData?: (email: string, password: string, phone: string, role: string) => Promise<any>;
+    createUserData?: (email: string, password: string, phone: string, role?: string | null) => Promise<any>;
   } = {}
 ) {
   const {
@@ -83,7 +73,7 @@ export async function createUserWithRole(
   } = dependencies;
 
   // Validate inputs using pure function
-  const validation = await validateUserCreationInputs(email, password, phone, role);
+  const validation = await validateUserCreationInputs(email, password, phone);
   if (!validation.isValid) {
     return {
       success: false,
@@ -130,8 +120,7 @@ export async function createUserWithRole(
 export async function validateUserCreationInputs(
   email: string,
   password: string,
-  phone: string,
-  role: string
+  phone: string
 ): Promise<ValidationResponse> {
   // Validate email format
   if (!email || !(await isValidEmailFormat(email))) {
@@ -157,14 +146,6 @@ export async function validateUserCreationInputs(
     };
   }
 
-  // Validate role
-  if (!(await isValidRole(role))) {
-    return {
-      isValid: false,
-      message: 'Invalid role specified'
-    };
-  }
-
   return {
     isValid: true,
     message: 'Validation passed'
@@ -178,27 +159,32 @@ export async function validateUserCreationInputs(
  * @param email User's email
  * @param password User's password
  * @param phone User's phone number
- * @param role User's role
+ * @param role Optional role to assign (stored as array)
  * @returns User creation data object
  */
 export async function createUserCreationData(
   email: string,
   password: string,
   phone: string,
-  role: string
+  role?: string | null
 ): Promise<any> {
+  // Convert single role to array format
+  const roles = role ? [role] : [];
+
+  const emailConfirmRequired = process.env.SUPABASE_EMAIL_CONFIRMATION_CONFIGURED?.toLowerCase() === 'true';
+  const phoneConfirmRequired = process.env.SUPABASE_PHONE_CONFIRMATION_CONFIGURED?.toLowerCase() === 'true';
   return {
     email,
     password,
     phone,
-    email_confirm: true, // Auto-confirm email
-    phone_confirm: false, // Don't require phone verification for now
+    email_confirm: !emailConfirmRequired, // these are flipped because api is asking if you want to say true to go ahead and auto confirm.
+    phone_confirm: !phoneConfirmRequired, // these are flipped because api is asking if you want to say true to go ahead and auto confirm.
     user_metadata: {
-      role,
-      phone
+      phone,
+      roles // Store roles as array in user_metadata
     },
     app_metadata: {
-      role
+      roles // Store roles as array in app_metadata
     }
   };
 }

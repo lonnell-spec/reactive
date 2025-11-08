@@ -7,6 +7,7 @@ import { Badge } from './ui/badge'
 import { CheckCircle, XCircle, Calendar, Car, Heart, MessageSquare, Phone, Mail, Baby } from 'lucide-react'
 import { GuestStatus } from '@/lib/types'
 import { ProfileImage } from './ProfileImage'
+import { ChildPhoto } from './ChildPhoto'
 import { Modal } from './ui/modal'
 
 interface Submission {
@@ -20,9 +21,11 @@ interface Submission {
   totalGuests: number
   hasChildrenForFormationKids: boolean
   childrenInfo: Array<{
+    id: string
     name: string
     dob: string
     allergies: string
+    photo_path: string
   }>
   carType: string
   vehicleColor: string
@@ -44,14 +47,10 @@ interface Submission {
   deniedAt?: string
 }
 
-interface UserRoles {
-  isPreApprover: boolean
-  isAdmin: boolean
-}
+// Removed UserRoles interface - all users have access to all actions
 
 interface GuestDetailsModalProps {
   submission: Submission | null
-  userRoles: UserRoles
   actionLoading: string | null
   onClose: () => void
   onPreApprove: (id: string) => void
@@ -68,7 +67,6 @@ interface GuestDetailsModalProps {
  */
 export function GuestDetailsModal({
   submission,
-  userRoles,
   actionLoading,
   onClose,
   onPreApprove,
@@ -90,33 +88,33 @@ export function GuestDetailsModal({
           <CardContent className="p-0">
           <div className="space-y-8">
             {/* Guest header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-gray-200">
-              <div className="flex items-center gap-4 mb-4 md:mb-0">
-                <div className="w-16 h-16 bg-gray-100 rounded-full overflow-hidden">
+            <div className="flex flex-col pb-6 border-b border-gray-200 space-y-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
                   <ProfileImage
                     profilePath={submission.profilePicture}
                     alt={`${submission.firstName} ${submission.lastName}`}
-                    width={64}
-                    height={64}
-                    className="object-cover"
+                    width={160}
+                    height={160}
+                    className="object-cover w-full h-full"
                   />
                 </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-black">
+                <div className="min-w-0 flex-1 text-center sm:text-left">
+                  <h3 className="text-xl sm:text-2xl font-bold text-black break-words">
                     {submission.firstName} {submission.lastName}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 text-sm sm:text-base">
                     Submitted {getRelativeTime(submission.submittedAt)}
                   </p>
                 </div>
               </div>
               
-              <div>
-                {submission.status === 'pending_pre_approval' && userRoles.isPreApprover && (
-                  <div className="flex flex-col sm:flex-row gap-3">
+              <div className="w-full">
+                {submission.status === 'pending_pre_approval' && (
+                  <div className="flex flex-col gap-3">
                     <Button 
                       onClick={() => onPreApprove(submission.id)}
-                      className="bg-green-600 hover:bg-green-700 text-white"
+                      className="bg-green-600 hover:bg-green-700 text-white w-full"
                       disabled={actionLoading === submission.id}
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
@@ -125,7 +123,7 @@ export function GuestDetailsModal({
                     <Button 
                       onClick={() => onPreApprovalDeny(submission.id)}
                       variant="outline"
-                      className="border-red-600 text-red-600 hover:bg-red-50"
+                      className="border-red-600 text-red-600 hover:bg-red-50 w-full"
                       disabled={actionLoading === submission.id}
                     >
                       <XCircle className="w-4 h-4 mr-2" />
@@ -133,11 +131,11 @@ export function GuestDetailsModal({
                     </Button>
                   </div>
                 )}
-                {submission.status === 'pending' && userRoles.isAdmin && (
-                  <div className="flex flex-col sm:flex-row gap-3">
+                {submission.status === 'pending' && (
+                  <div className="flex flex-col gap-3">
                     <Button 
                       onClick={() => onApprove(submission.id)}
-                      className="bg-green-600 hover:bg-green-700 text-white"
+                      className="bg-green-600 hover:bg-green-700 text-white w-full"
                       disabled={actionLoading === submission.id}
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
@@ -146,7 +144,7 @@ export function GuestDetailsModal({
                     <Button 
                       onClick={() => onDeny(submission.id)}
                       variant="outline"
-                      className="border-red-600 text-red-600 hover:bg-red-50"
+                      className="border-red-600 text-red-600 hover:bg-red-50 w-full"
                       disabled={actionLoading === submission.id}
                     >
                       <XCircle className="w-4 h-4 mr-2" />
@@ -155,19 +153,19 @@ export function GuestDetailsModal({
                   </div>
                 )}
                 {submission.status === 'approved' && (
-                  <Badge className="bg-green-600 text-white py-1 px-3 text-lg">
+                  <Badge className="bg-green-600 text-white py-2 px-4 text-base w-full justify-center">
                     <CheckCircle className="w-4 h-4 mr-1" />
                     Approved
                   </Badge>
                 )}
                 {submission.status === 'denied' && (
-                  <Badge className="bg-red-600 text-white py-1 px-3 text-lg">
+                  <Badge className="bg-red-600 text-white py-2 px-4 text-base w-full justify-center">
                     <XCircle className="w-4 h-4 mr-1" />
                     Denied
                   </Badge>
                 )}
                 {submission.status === 'pre_approval_denied' && (
-                  <Badge className="bg-red-600 text-white py-1 px-3 text-lg">
+                  <Badge className="bg-red-600 text-white py-2 px-4 text-base w-full justify-center">
                     <XCircle className="w-4 h-4 mr-1" />
                     Pre-Approval Denied
                   </Badge>
@@ -192,45 +190,45 @@ export function GuestDetailsModal({
             
             {/* Visit details */}
             <div className="pb-6 border-b border-gray-200">
-              <h4 className="text-lg font-medium text-black mb-2 flex items-center">
+              <h4 className="text-lg font-medium text-black mb-4 flex items-center">
                 <Calendar className="w-5 h-5 mr-2 text-red-600" />
                 Visit Details
               </h4>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <p className="text-gray-500 text-sm">Visit Date</p>
-                  <p className="text-lg">{formatDate(submission.visitDate)}</p>
+                  <p className="text-base sm:text-lg break-words">{formatDate(submission.visitDate)}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Gathering Time</p>
-                  <p className="text-lg">{submission.gatheringTime}</p>
+                  <p className="text-base sm:text-lg break-words">{submission.gatheringTime}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Total Guests</p>
-                  <p className="text-lg">{submission.totalGuests}</p>
+                  <p className="text-base sm:text-lg">{submission.totalGuests}</p>
                 </div>
               </div>
             </div>
             
             {/* Contact details */}
             <div className="pb-6 border-b border-gray-200">
-              <h4 className="text-lg font-medium text-black mb-2">Contact Information</h4>
+              <h4 className="text-lg font-medium text-black mb-4">Contact Information</h4>
               
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-start">
-                  <Phone className="w-5 h-5 mr-3 text-gray-500" />
-                  <div>
+                  <Phone className="w-5 h-5 mr-3 text-gray-500 flex-shrink-0 mt-1" />
+                  <div className="min-w-0 flex-1">
                     <p className="text-gray-500 text-sm">Phone</p>
-                    <p className="text-lg">{submission.phone}</p>
+                    <p className="text-base sm:text-lg break-all">{submission.phone}</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start">
-                  <Mail className="w-5 h-5 mr-3 text-gray-500" />
-                  <div>
+                  <Mail className="w-5 h-5 mr-3 text-gray-500 flex-shrink-0 mt-1" />
+                  <div className="min-w-0 flex-1">
                     <p className="text-gray-500 text-sm">Email</p>
-                    <p className="text-lg">{submission.email || "Not provided"}</p>
+                    <p className="text-base sm:text-lg break-all">{submission.email || "Not provided"}</p>
                   </div>
                 </div>
               </div>
@@ -238,32 +236,32 @@ export function GuestDetailsModal({
             
             {/* Vehicle info */}
             <div className="pb-6 border-b border-gray-200">
-              <h4 className="text-lg font-medium text-black mb-2 flex items-center">
+              <h4 className="text-lg font-medium text-black mb-4 flex items-center">
                 <Car className="w-5 h-5 mr-2 text-red-600" />
                 Vehicle Information
               </h4>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-gray-500 text-sm">Type</p>
-                  <p className="text-lg">{submission.carType}</p>
+                  <p className="text-base sm:text-lg break-words">{submission.carType}</p>
                 </div>
                 {submission.vehicleMake && (
                   <div>
                     <p className="text-gray-500 text-sm">Make</p>
-                    <p className="text-lg">{submission.vehicleMake}</p>
+                    <p className="text-base sm:text-lg break-words">{submission.vehicleMake}</p>
                   </div>
                 )}
                 {submission.vehicleModel && (
                   <div>
                     <p className="text-gray-500 text-sm">Model</p>
-                    <p className="text-lg">{submission.vehicleModel}</p>
+                    <p className="text-base sm:text-lg break-words">{submission.vehicleModel}</p>
                   </div>
                 )}
                 {submission.vehicleColor && (
                   <div>
                     <p className="text-gray-500 text-sm">Color</p>
-                    <p className="text-lg">{submission.vehicleColor}</p>
+                    <p className="text-base sm:text-lg break-words">{submission.vehicleColor}</p>
                   </div>
                 )}
               </div>
@@ -272,7 +270,7 @@ export function GuestDetailsModal({
             {/* Children */}
             {submission.hasChildrenForFormationKids && (
               <div className="pb-6 border-b border-gray-200">
-                <h4 className="text-lg font-medium text-black mb-2 flex items-center">
+                <h4 className="text-lg font-medium text-black mb-4 flex items-center">
                   <Baby className="w-5 h-5 mr-2 text-red-600" />
                   Children for Formation Kids
                 </h4>
@@ -280,24 +278,40 @@ export function GuestDetailsModal({
                 {submission.childrenInfo.length > 0 ? (
                   <div className="space-y-4">
                     {submission.childrenInfo.map((child, index) => (
-                      <Card key={index} className="bg-gray-50 p-4 border border-gray-200">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-gray-500 text-sm">Name</p>
-                            <p className="text-lg font-medium">{child.name}</p>
+                      <Card key={child.id || index} className="bg-gray-50 p-4 border border-gray-200">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          {/* Child Photo */}
+                          <div className="flex-shrink-0">
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg overflow-hidden">
+                              <ChildPhoto
+                                photoPath={child.photo_path}
+                                alt={`Photo of ${child.name}`}
+                                width={160}
+                                height={160}
+                                className="object-cover w-full h-full"
+                              />
+                            </div>
                           </div>
-                          {child.dob && (
+                          
+                          {/* Child Information */}
+                          <div className="flex-1 space-y-4">
                             <div>
-                              <p className="text-gray-500 text-sm">Date of Birth</p>
-                              <p className="text-lg">{formatDate(child.dob)}</p>
+                              <p className="text-gray-500 text-sm">Name</p>
+                              <p className="text-base sm:text-lg font-medium break-words">{child.name}</p>
                             </div>
-                          )}
-                          {child.allergies && (
-                            <div className="md:col-span-2">
-                              <p className="text-gray-500 text-sm">Allergies/Special Needs</p>
-                              <p className="text-lg">{child.allergies}</p>
-                            </div>
-                          )}
+                            {child.dob && (
+                              <div>
+                                <p className="text-gray-500 text-sm">Date of Birth</p>
+                                <p className="text-base sm:text-lg break-words">{formatDate(child.dob)}</p>
+                              </div>
+                            )}
+                            {child.allergies && (
+                              <div>
+                                <p className="text-gray-500 text-sm">Allergies/Special Needs</p>
+                                <p className="text-base sm:text-lg break-words">{child.allergies}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </Card>
                     ))}
@@ -310,7 +324,7 @@ export function GuestDetailsModal({
             
             {/* Additional info */}
             <div className="space-y-6">
-              <h4 className="text-lg font-medium text-black mb-2 flex items-center">
+              <h4 className="text-lg font-medium text-black mb-4 flex items-center">
                 <MessageSquare className="w-5 h-5 mr-2 text-red-600" />
                 Additional Information
               </h4>
@@ -320,27 +334,27 @@ export function GuestDetailsModal({
                   {submission.foodAllergies && (
                     <div>
                       <p className="text-gray-500 text-sm">Food Allergies</p>
-                      <p className="text-lg bg-gray-50 p-3 border border-gray-200 rounded-md">
+                      <div className="text-base sm:text-lg bg-gray-50 p-3 border border-gray-200 rounded-md break-words">
                         {submission.foodAllergies}
-                      </p>
+                      </div>
                     </div>
                   )}
                   
                   {submission.specialNeeds && (
                     <div>
                       <p className="text-gray-500 text-sm">Special Needs</p>
-                      <p className="text-lg bg-gray-50 p-3 border border-gray-200 rounded-md">
+                      <div className="text-base sm:text-lg bg-gray-50 p-3 border border-gray-200 rounded-md break-words">
                         {submission.specialNeeds}
-                      </p>
+                      </div>
                     </div>
                   )}
                   
                   {submission.additionalNotes && (
                     <div>
                       <p className="text-gray-500 text-sm">Additional Notes</p>
-                      <p className="text-lg bg-gray-50 p-3 border border-gray-200 rounded-md">
+                      <div className="text-base sm:text-lg bg-gray-50 p-3 border border-gray-200 rounded-md break-words">
                         {submission.additionalNotes}
-                      </p>
+                      </div>
                     </div>
                   )}
                 </div>

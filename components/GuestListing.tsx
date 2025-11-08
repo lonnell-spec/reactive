@@ -103,27 +103,28 @@ export function GuestListing({
             className="p-6 hover:bg-gray-50 cursor-pointer transition-colors"
             onClick={() => onSubmissionClick(submission.id)}
           >
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-full overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-full overflow-hidden flex-shrink-0 self-center sm:self-auto">
                   <ProfileImage
                     profilePath={submission.profilePicture}
                     alt={`${submission.firstName} ${submission.lastName}`}
-                    width={48}
-                    height={48}
-                    className="object-cover"
+                    width={160}
+                    height={160}
+                    className="object-cover w-full h-full"
                   />
                 </div>
-                <div>
-                  <h4 className="text-lg font-medium">{submission.firstName} {submission.lastName}</h4>
-                  <p className="text-sm text-gray-600">
+                <div className="min-w-0 flex-1 text-center sm:text-left">
+                  <h4 className="text-lg font-medium break-words">{submission.firstName} {submission.lastName}</h4>
+                  <p className="text-sm text-gray-600 break-words">
                     Visiting on {formatDate(submission.visitDate)} • {submission.totalGuests} guest{submission.totalGuests > 1 ? 's' : ''}
                   </p>
+                  <p className="text-xs text-gray-500 sm:hidden mt-1">{getRelativeTime(submission.submittedAt)}</p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
-                <p className="text-sm text-gray-600 hidden md:block">{getRelativeTime(submission.submittedAt)}</p>
+              <div className="flex items-center justify-start sm:justify-end gap-3 flex-wrap">
+                <p className="text-sm text-gray-600 hidden sm:block">{getRelativeTime(submission.submittedAt)}</p>
                 
                 {/* Status badges */}
                 {submission.status === 'pending_pre_approval' && (

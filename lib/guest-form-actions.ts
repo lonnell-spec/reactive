@@ -8,7 +8,7 @@ import { sendPreApproverNotification } from './notifications';
 import { parseFormBoolean, parseChildrenWithPhotos, getFormString } from './form-utils';
 import { fileToBuffer, generateProfilePicturePath, uploadChildPhoto, prepareProfilePictureUpload } from './storage-utils';
 import { mapFormDataToGuestRecord, mapChildInfoToRecord, createGuestProfileUpdateRecord, createChildPhotoUpdateRecord } from './database-utils';
-import { calculateExpireDateTime } from './date-utils';
+import { calculateExpiryFromVisitDate } from './date-timezone-utils';
 import { generateUniqueRandom9DigitInteger } from './random-utils';
 
 
@@ -45,6 +45,15 @@ export async function submitGuestForm(
   } = { guestId: '', childrenIds: [], uploadedFiles: [] };
 
   try {
+    // Validate FormData is not empty
+    const entries = Array.from(formData.entries())
+    if (entries.length === 0) {
+      return {
+        success: false,
+        message: 'Server received empty form data. This may be a Next.js Server Action issue with large files.'
+      }
+    }
+
     const parsedData = await parseAndValidate(formData);
 
     const guest = await insertGuest(supabaseService, parsedData);
@@ -75,7 +84,8 @@ export async function submitGuestForm(
     };
 
   } catch (error) {
-
+    console.error('Error submitting guest form:', error);
+    
     // Attempt to roll back using service role key
     await rollbackGuestSubmission(cleanup, supabaseService);
 
@@ -186,52 +196,91 @@ async function uploadProfilePicture(supabaseService: Awaited<ReturnType<typeof g
 }
 
 /**
+ * Parse children with photos from JSON structure (new format)
+ */
+async function parseChildrenWithPhotosFromJson(
+  childrenInfoJson: any[],
+  formData: FormData
+): Promise<any[]> {
+  const childrenWithPhoto = [];
+  
+  for (let i = 0; i < childrenInfoJson.length; i++) {
+    const child = childrenInfoJson[i];
+    const photo = formData.get(`childPhoto_${i}`) as File | null;
+    
+    childrenWithPhoto.push({
+      name: child.name || '',
+      dob: child.dob || '',
+      allergies: child.allergies || '',
+      photo: photo
+    });
+  }
+  
+  return childrenWithPhoto;
+}
+
+/**
  * Parses and validates the form data. Importantly photos stay out of serialisation and deserialisation.
  */
 async function parseAndValidate(formData: FormData): Promise<GuestFormData> {
-  const rawFormData = Object.fromEntries(formData);
+  // Extract the JSON form data
+  const formDataJson = formData.get('formData') as string;
+  
+  if (!formDataJson) {
+    throw new Error('No form data found in FormData')
+  }
+  
+  let textData: any;
+  try {
+    textData = JSON.parse(formDataJson);
+  } catch (error) {
+    console.error('Failed to parse JSON form data:', error)
+    throw new Error('Invalid form data format')
+  }
 
   // Extract actual guest photo from formData
   const profilePicture = formData.get('profilePicture') as File;
 
-  // Parse the form data for has children using pure function
-  const hasChildrenForFormationKids = await parseFormBoolean(rawFormData.hasChildrenForFormationKids);
-
-  // Parse children information using pure function
-  const childrenWithPhoto = hasChildrenForFormationKids 
-    ? await parseChildrenWithPhotos(rawFormData.childrenInfo, formData)
+  // Parse children information with photos
+  const childrenWithPhoto = textData.hasChildrenForFormationKids && textData.childrenInfo?.length > 0
+    ? await parseChildrenWithPhotosFromJson(textData.childrenInfo, formData)
     : [];
 
-  // Create the parsed data object using pure helper functions
+  // Create the parsed data object directly from JSON
   const parsedData = {
-    firstName: await getFormString(rawFormData.firstName),
-    lastName: await getFormString(rawFormData.lastName),
-    email: await getFormString(rawFormData.email),
-    phone: await getFormString(rawFormData.phone),
-    visitDate: await getFormString(rawFormData.visitDate),
-    gatheringTime: await getFormString(rawFormData.gatheringTime),
-    totalGuests: await getFormString(rawFormData.totalGuests),
-    hasChildrenForFormationKids,
+    firstName: textData.firstName || '',
+    lastName: textData.lastName || '',
+    email: textData.email || '',
+    phone: textData.phone || '',
+    visitDate: textData.visitDate || '',
+    gatheringTime: textData.gatheringTime || '',
+    totalGuests: textData.totalGuests || '',
+    hasChildrenForFormationKids: textData.hasChildrenForFormationKids || false,
     childrenInfo: childrenWithPhoto,
-    carType: await getFormString(rawFormData.carType),
-    vehicleColor: await getFormString(rawFormData.vehicleColor),
-    vehicleMake: await getFormString(rawFormData.vehicleMake),
-    vehicleModel: await getFormString(rawFormData.vehicleModel),
-    foodAllergies: await getFormString(rawFormData.foodAllergies),
-    specialNeeds: await getFormString(rawFormData.specialNeeds),
-    additionalNotes: await getFormString(rawFormData.additionalNotes),
+    carType: textData.carType || '',
+    vehicleColor: textData.vehicleColor || '',
+    vehicleMake: textData.vehicleMake || '',
+    vehicleModel: textData.vehicleModel || '',
+    foodAllergies: textData.foodAllergies || '',
+    specialNeeds: textData.specialNeeds || '',
+    additionalNotes: textData.additionalNotes || '',
     profilePicture: profilePicture,
   };
 
   // Validate the parsed data
-  const validatedData = guestFormSchema.parse(parsedData);
-  return validatedData;
+  try {
+    const validatedData = guestFormSchema.parse(parsedData);
+    return validatedData;
+  } catch (error) {
+    console.error('Zod validation failed:', error)
+    throw error
+  }
 }
 
 async function insertGuest(supabaseService: Awaited<ReturnType<typeof getSupabaseServiceClient>>, parsedData: GuestFormData): Promise<GuestInsertResult> {
-  // Calculate expires_at based on visit_date (Monday after visit_date at midnight)
-  const visitDate = new Date(parsedData.visitDate);
-  const expiresAt = await calculateExpireDateTime(visitDate);
+  // Calculate expires_at based on visit_date (Monday after visit_date at end of day)
+  // parsedData.visitDate is still YYYY-MM-DD format from form, so we can use it directly
+  const expiresAt = calculateExpiryFromVisitDate(parsedData.visitDate);
   
   // Generate unique 9-digit random integer for text callback reference
   const textCallbackReferenceId = await generateUniqueRandom9DigitInteger(

@@ -16,11 +16,7 @@ on storage.objects for select
 to authenticated
 using (bucket_id = 'guest-photos');
 
--- Allow anon users to upload to guest-photos (for guest registration)
-create policy "Anon users can upload to guest-photos"
-on storage.objects for insert
-to anon
-with check (bucket_id = 'guest-photos');
+-- Note: Anonymous uploads removed for security - guest registration now uses authenticated flow
 
 -- Allow service role to delete from guest-photos (for rollbacks)
 create policy "Service role can delete from guest-photos"

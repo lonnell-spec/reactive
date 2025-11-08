@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
@@ -15,6 +17,18 @@ import { motion } from 'motion/react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Image from 'next/image'
 import { signInUser, registerUser, requestPasswordReset } from '@/lib/auth-client-actions'
+import { getAuthConfig } from '@/lib/profile-config-actions'
+import { PhoneInput } from './ui/phone-input'
+import { FormFieldError } from './forms/FormFieldError'
+import { stripPhoneFormatting } from '@/lib/phone-utils'
+import { 
+  registrationFormSchema, 
+  loginFormSchema, 
+  forgotPasswordFormSchema,
+  type RegistrationFormData,
+  type LoginFormData,
+  type ForgotPasswordFormData
+} from '@/lib/admin-auth-types'
 
 interface AdminLoginProps {
   onLogin: (accessToken: string, user: any) => void
@@ -25,24 +39,60 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('sign-in')
-  
-  // Form state
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [phone, setPhone] = useState('')
-  const [adminCode, setAdminCode] = useState('')
-  const [userRole, setUserRole] = useState('admin')
+  const [authConfig, setAuthConfig] = useState({
+    emailConfirmationConfigured: false
+  })
 
   const supabase = createClientComponentClient()
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // React Hook Form instances
+  const registrationForm = useForm<RegistrationFormData>({
+    resolver: zodResolver(registrationFormSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      phone: '',
+      adminCode: ''
+    }
+  })
+
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: {
+      email: '',
+      password: ''
+    }
+  })
+
+  const forgotPasswordForm = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordFormSchema),
+    defaultValues: {
+      email: ''
+    }
+  })
+
+  // Load auth configuration on component mount
+  useEffect(() => {
+    const loadAuthConfig = async () => {
+      try {
+        const config = await getAuthConfig()
+        setAuthConfig(config)
+      } catch (error) {
+        console.error('Failed to load auth config:', error)
+        // Use defaults if config loading fails
+      }
+    }
+    
+    loadAuthConfig()
+  }, [])
+
+  const handleSignIn = async (data: LoginFormData) => {
     setLoading(true)
     setError('')
     setMessage('')
     
-    const result = await signInUser(email, password)
+    const result = await signInUser(data.email, data.password)
     
     if (result.success) {
       onLogin(result.session!.access_token, result.user)
@@ -53,23 +103,21 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setLoading(false)
   }
   
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSignUp = async (data: RegistrationFormData) => {
     setLoading(true)
     setError('')
     setMessage('')
     
-    const result = await registerUser(email, password, confirmPassword, phone, adminCode, userRole)
+    // Strip phone formatting before sending to server
+    const cleanPhone = stripPhoneFormatting(data.phone)
+    const result = await registerUser(data.email, data.password, data.confirmPassword, cleanPhone, data.adminCode)
     
     if (result.success) {
       setMessage(result.message)
       setActiveTab('sign-in')
       
       // Reset form
-      setAdminCode('')
-      setPassword('')
-      setConfirmPassword('')
-      setPhone('')
+      registrationForm.reset()
     } else {
       setError(result.message)
     }
@@ -77,13 +125,18 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setLoading(false)
   }
   
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleForgotPassword = async (data: ForgotPasswordFormData) => {
+    // Check if email confirmation is configured
+    if (!authConfig.emailConfirmationConfigured) {
+      setError('Password reset is disabled because email confirmation is not configured.')
+      return
+    }
+    
     setLoading(true)
     setError('')
     setMessage('')
     
-    const result = await requestPasswordReset(email)
+    const result = await requestPasswordReset(data.email)
     
     if (result.success) {
       setMessage(result.message)
@@ -162,37 +215,61 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                 </TabsList>
                 
                 <TabsContent value="sign-in" className="mt-4">
-                  <form onSubmit={handleSignIn} className="space-y-6">
+                  <form onSubmit={loginForm.handleSubmit(handleSignIn)} className="space-y-6">
                     <div className="space-y-3">
-                      <Label htmlFor="email" className="text-xl">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <Label htmlFor="login-email" className="text-xl">Email</Label>
+                      <div className="relative">
+                        <Controller
+                          name="email"
+                          control={loginForm.control}
+                          render={({ field }) => (
+                            <Input
+                              id="login-email"
+                              type="email"
+                              {...field}
+                              className={`border-2 ${loginForm.formState.errors.email ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                            />
+                          )}
+                        />
+                        {loginForm.formState.errors.email && (
+                          <FormFieldError message={loginForm.formState.errors.email.message || 'Email is required'} />
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <Label htmlFor="password" className="text-xl">Password</Label>
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('forgot-password')}
-                          className="text-sm text-red-600 hover:underline"
-                        >
-                          Forgot Password?
-                        </button>
+                        <Label htmlFor="login-password" className="text-xl">Password</Label>
+                        {authConfig.emailConfirmationConfigured ? (
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('forgot-password')}
+                            className="text-sm text-red-600 hover:underline"
+                          >
+                            Forgot Password?
+                          </button>
+                        ) : (
+                          <span className="text-sm text-gray-400 cursor-not-allowed">
+                            Password Reset Disabled
+                          </span>
+                        )}
                       </div>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <div className="relative">
+                        <Controller
+                          name="password"
+                          control={loginForm.control}
+                          render={({ field }) => (
+                            <Input
+                              id="login-password"
+                              type="password"
+                              {...field}
+                              className={`border-2 ${loginForm.formState.errors.password ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                            />
+                          )}
+                        />
+                        {loginForm.formState.errors.password && (
+                          <FormFieldError message={loginForm.formState.errors.password.message || 'Password is required'} />
+                        )}
+                      </div>
                     </div>
                     <Button 
                       type="submit" 
@@ -205,107 +282,116 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                 </TabsContent>
                 
                 <TabsContent value="sign-up" className="mt-4">
-                  <form onSubmit={handleSignUp} className="space-y-6">
+                  <form onSubmit={registrationForm.handleSubmit(handleSignUp)} className="space-y-6">
                     <div className="space-y-3">
                       <Label htmlFor="register-email" className="text-xl">Email</Label>
-                      <Input
-                        id="register-email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <div className="relative">
+                        <Controller
+                          name="email"
+                          control={registrationForm.control}
+                          render={({ field }) => (
+                            <Input
+                              id="register-email"
+                              type="email"
+                              {...field}
+                              className={`border-2 ${registrationForm.formState.errors.email ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                            />
+                          )}
+                        />
+                        {registrationForm.formState.errors.email && (
+                          <FormFieldError message={registrationForm.formState.errors.email.message || 'Email is required'} />
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-3">
                       <Label htmlFor="register-password" className="text-xl">Password</Label>
-                      <Input
-                        id="register-password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <div className="relative">
+                        <Controller
+                          name="password"
+                          control={registrationForm.control}
+                          render={({ field }) => (
+                            <Input
+                              id="register-password"
+                              type="password"
+                              {...field}
+                              className={`border-2 ${registrationForm.formState.errors.password ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                            />
+                          )}
+                        />
+                        {registrationForm.formState.errors.password && (
+                          <FormFieldError message={registrationForm.formState.errors.password.message || 'Password is required'} />
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-3">
                       <Label htmlFor="confirm-password" className="text-xl">Confirm Password</Label>
-                      <Input
-                        id="confirm-password"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <div className="relative">
+                        <Controller
+                          name="confirmPassword"
+                          control={registrationForm.control}
+                          render={({ field }) => (
+                            <Input
+                              id="confirm-password"
+                              type="password"
+                              {...field}
+                              className={`border-2 ${registrationForm.formState.errors.confirmPassword ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                            />
+                          )}
+                        />
+                        {registrationForm.formState.errors.confirmPassword && (
+                          <FormFieldError message={registrationForm.formState.errors.confirmPassword.message || 'Please confirm your password'} />
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-3">
-                      <Label htmlFor="phone" className="text-xl">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        required
-                        placeholder="(555) 123-4567"
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <Label htmlFor="register-phone" className="text-xl">Phone Number</Label>
+                      <div className="relative">
+                        <Controller
+                          name="phone"
+                          control={registrationForm.control}
+                          render={({ field: { onChange, value, name, ref } }) => (
+                            <PhoneInput
+                              id="register-phone"
+                              name={name}
+                              ref={ref}
+                              value={value || ''}
+                              onChange={onChange}
+                              className={`border-2 ${registrationForm.formState.errors.phone ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                            />
+                          )}
+                        />
+                        {registrationForm.formState.errors.phone && (
+                          <FormFieldError message={registrationForm.formState.errors.phone.message || 'Phone number must be exactly 10 digits'} />
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-3">
                       <Label htmlFor="admin-code" className="text-xl flex items-center">
-                        {userRole === 'pre_approver' ? 'Pre-Approver' : 'Admin'}
-                        {' Registration Code'}
+                        Registration Code
                         <div className="ml-2 text-sm text-gray-500">(Required)</div>
                       </Label>
-                      <Input
-                        id="admin-code"
-                        type="text"
-                        value={adminCode}
-                        onChange={(e) => setAdminCode(e.target.value)}
-                        required
-                        className={`border-2 ${userRole === 'pre_approver' ? 'focus:border-yellow-600' : 'focus:border-red-600'} py-4`}
-                        placeholder={`Enter ${userRole === 'pre_approver' ? 'Pre-Approver' : 'Admin'} code`}
-                      />
+                      <div className="relative">
+                        <Controller
+                          name="adminCode"
+                          control={registrationForm.control}
+                          render={({ field }) => (
+                            <Input
+                              id="admin-code"
+                              type="text"
+                              {...field}
+                              className={`border-2 ${registrationForm.formState.errors.adminCode ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                              placeholder="Enter registration code"
+                            />
+                          )}
+                        />
+                        {registrationForm.formState.errors.adminCode && (
+                          <FormFieldError message={registrationForm.formState.errors.adminCode.message || 'Registration code is required'} />
+                        )}
+                      </div>
                       <p className="text-sm text-gray-500">
                         <AlertCircle className="inline-block w-4 h-4 mr-1" />
-                        This code is required to register as a{userRole === 'pre_approver' ? ' Pre-Approver' : 'n Admin'}.
+                        This code is required to register as an admin user.
                       </p>
-                    </div>
-                    <div className="space-y-3">
-                      <Label htmlFor="user-role" className="text-xl">User Role</Label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <Button
-                          type="button"
-                          variant={userRole === 'pre_approver' ? 'default' : 'outline'}
-                          className={userRole === 'pre_approver' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'border-yellow-600 text-yellow-600'}
-                          onClick={() => {
-                            setUserRole('pre_approver')
-                            // Don't clear the code when changing roles
-                          }}
-                        >
-                          Pre-Approver
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={userRole === 'admin' ? 'default' : 'outline'}
-                          className={userRole === 'admin' ? 'bg-red-600 hover:bg-red-700 text-white' : 'border-red-600 text-red-600'}
-                          onClick={() => {
-                            setUserRole('admin')
-                            // Don't clear the code when changing roles
-                          }}
-                        >
-                          Admin
-                        </Button>
-                      </div>
-                      <div className={`p-4 rounded-md ${userRole === 'pre_approver' ? 'bg-yellow-50 border border-yellow-200' : 'bg-red-50 border border-red-200'}`}>
-                        <h4 className={`font-medium mb-1 ${userRole === 'pre_approver' ? 'text-yellow-800' : 'text-red-800'}`}>
-                          {userRole === 'pre_approver' ? 'Pre-Approver' : 'Admin'} Role
-                        </h4>
-                        <p className="text-sm text-gray-700">
-                          {userRole === 'pre_approver' && 'Pre-Approvers can review and pre-approve new guest registrations. You will only see pending pre-approval submissions.'}
-                          {userRole === 'admin' && 'Admins have full access to all guest registrations and approvals. You will see all submissions regardless of status.'}
-                        </p>
-                      </div>
                     </div>
                     <Button 
                       type="submit" 
@@ -318,17 +404,26 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                 </TabsContent>
                 
                 <TabsContent value="forgot-password" className="mt-4">
-                  <form onSubmit={handleForgotPassword} className="space-y-6">
+                  <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)} className="space-y-6">
                     <div className="space-y-3">
                       <Label htmlFor="reset-email" className="text-xl">Email</Label>
-                      <Input
-                        id="reset-email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="border-2 border-gray-300 focus:border-red-600 py-4"
-                      />
+                      <div className="relative">
+                        <Controller
+                          name="email"
+                          control={forgotPasswordForm.control}
+                          render={({ field }) => (
+                            <Input
+                              id="reset-email"
+                              type="email"
+                              {...field}
+                              className={`border-2 ${forgotPasswordForm.formState.errors.email ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                            />
+                          )}
+                        />
+                        {forgotPasswordForm.formState.errors.email && (
+                          <FormFieldError message={forgotPasswordForm.formState.errors.email.message || 'Email is required'} />
+                        )}
+                      </div>
                     </div>
                     <Button 
                       type="submit" 
@@ -357,8 +452,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
             For assistance, please contact system administrator
           </p>
           <p className="text-sm text-gray-400 mt-2">
-            Pre-Approvers can only see pending pre-approval guests.<br />
-            Approvers can only see pre-approved guests awaiting final approval.
+            User roles and permissions can be managed from the admin dashboard.
           </p>
         </AnimatedSection>
       </div>

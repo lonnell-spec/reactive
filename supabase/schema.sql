@@ -69,3 +69,18 @@ create table if not exists public.guest_children (
 );
 
 create index if not exists idx_guest_children_guest_id on public.guest_children(guest_id);
+
+-- Guest Archive table for historical records
+create table if not exists public.guest_archive (
+  id uuid primary key default gen_random_uuid(),
+  original_guest_id uuid not null,
+  first_name text not null,
+  last_name_initial text not null,
+  final_status text not null,
+  visit_date date not null,
+  did_visit boolean not null default false,
+  archived_at timestamptz not null default now()
+);
+
+create index if not exists idx_guest_archive_visit_date on public.guest_archive(visit_date);
+create index if not exists idx_guest_archive_archived_at on public.guest_archive(archived_at);

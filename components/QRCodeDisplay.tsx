@@ -51,12 +51,6 @@ export function QRCodeDisplay({
           style={{ width: size, height: size }}
         />
       </div>
-      
-      {showDirections && (
-        <p className="text-sm text-gray-600 mt-2">
-          Scan with your phone's camera or show to staff
-        </p>
-      )}
     </div>
   )
 }

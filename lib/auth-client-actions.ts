@@ -2,9 +2,17 @@
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { validateRegistrationCode, createUserWithRole } from './auth-actions'
+import { 
+  loginFormSchema, 
+  registrationFormSchema, 
+  forgotPasswordFormSchema,
+  type LoginFormData,
+  type RegistrationFormData,
+  type ForgotPasswordFormData
+} from './admin-auth-types'
 
 /**
- * Handles user sign in
+ * Handles user sign in with Zod validation
  * Pure business logic with injectable dependencies
  * 
  * @param email User's email
@@ -22,11 +30,12 @@ export async function signInUser(
     supabaseClient = createClientComponentClient()
   } = dependencies;
 
-  // Validate inputs
-  if (!email || !password) {
+  // Validate inputs using Zod
+  const validation = loginFormSchema.safeParse({ email, password });
+  if (!validation.success) {
     return {
       success: false,
-      message: 'Email and password are required'
+      message: validation.error.issues[0]?.message || 'Invalid input'
     };
   }
 
@@ -65,7 +74,7 @@ export async function signInUser(
 }
 
 /**
- * Validates sign up form inputs
+ * Validates sign up form inputs using Zod
  * Pure function for testability
  * 
  * @param email User's email
@@ -82,27 +91,19 @@ export async function validateSignUpInputs(
   phone: string,
   adminCode: string
 ): Promise<{ isValid: boolean; message: string }> {
-  // Check required fields
-  if (!email || !password || !confirmPassword || !phone || !adminCode) {
-    return {
-      isValid: false,
-      message: 'All fields are required'
-    };
-  }
+  // Validate using Zod schema
+  const validation = registrationFormSchema.safeParse({
+    email,
+    password,
+    confirmPassword,
+    phone,
+    adminCode
+  });
   
-  // Check password match
-  if (password !== confirmPassword) {
+  if (!validation.success) {
     return {
       isValid: false,
-      message: 'Passwords do not match'
-    };
-  }
-  
-  // Check password length
-  if (password.length < 6) {
-    return {
-      isValid: false,
-      message: 'Password must be at least 6 characters'
+      message: validation.error.issues[0]?.message || 'Invalid input'
     };
   }
 
@@ -130,7 +131,6 @@ export async function registerUser(
   confirmPassword: string,
   phone: string,
   adminCode: string,
-  userRole: string,
   dependencies: {
     validateCodeFn?: typeof validateRegistrationCode;
     createUserFn?: typeof createUserWithRole;
@@ -151,8 +151,8 @@ export async function registerUser(
   }
 
   try {
-    // Verify the registration code for the selected role
-    const validationResult = await validateCodeFn(adminCode, userRole);
+    // Verify the registration code
+    const validationResult = await validateCodeFn(adminCode);
     
     if (!validationResult.isValid) {
       return {
@@ -161,8 +161,8 @@ export async function registerUser(
       };
     }
 
-    // Create user account
-    const createResult = await createUserFn(email, password, phone, userRole);
+    // Create user account with role from validation
+    const createResult = await createUserFn(email, password, phone, validationResult.role);
     
     if (!createResult.success) {
       return {
@@ -185,7 +185,7 @@ export async function registerUser(
 }
 
 /**
- * Handles password reset request
+ * Handles password reset request with Zod validation
  * Pure business logic with injectable dependencies
  * 
  * @param email User's email
@@ -201,10 +201,12 @@ export async function requestPasswordReset(
     supabaseClient = createClientComponentClient()
   } = dependencies;
 
-  if (!email) {
+  // Validate input using Zod
+  const validation = forgotPasswordFormSchema.safeParse({ email });
+  if (!validation.success) {
     return {
       success: false,
-      message: 'Email is required'
+      message: validation.error.issues[0]?.message || 'Invalid email'
     };
   }
 

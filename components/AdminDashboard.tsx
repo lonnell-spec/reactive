@@ -11,10 +11,12 @@ import { FloatingElements } from './FloatingElements'
 import Image from 'next/image'
 import { GuestStatus } from '@/lib/types'
 import { preApproveGuest, denyPreApproval, approveGuest, denyGuest } from '@/lib/admin-actions'
-import { determineUserRoles, UserRoles } from '@/lib/user-role-utils'
+// Removed role-based filtering - all users see all data
 import { formatGuestDataList, Submission } from '@/lib/data-formatting-utils'
 import { GuestDetailsModal } from './GuestDetailsModal'
 import { GuestListing } from './GuestListing'
+import { AdminMenu } from './AdminMenu'
+import { formatTimestamp, getRelativeTime as getRelativeTimeUtil, formatVisitDate } from '@/lib/date-timezone-utils'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 // No test utils import needed
 
@@ -36,22 +38,14 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [statusMsg, setStatusMsg] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
-  const [userRoles, setUserRoles] = useState<UserRoles>({ isPreApprover: false, isAdmin: false })
+  // Removed role-based state - all users have access to all functionality
   const [loadingSpecificGuest, setLoadingSpecificGuest] = useState(false)
   const [hasProcessedInitialGuest, setHasProcessedInitialGuest] = useState(false)
 
-  // Check user roles on mount
-  useEffect(() => {
-    const checkRoles = async () => {
-      await checkUserRoles();
-    };
-    checkRoles();
-  }, [user])
-
-  // Load submissions based on roles
+  // Load submissions on mount
   useEffect(() => {
     loadSubmissions()
-  }, [userRoles, showCompleted])
+  }, [showCompleted])
 
   // Handle initial external guest ID after submissions are loaded
   useEffect(() => {
@@ -71,8 +65,8 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
       // Load pending guest submissions (pending_pre_approval and pending)
       await loadGuestSubmissions();
       
-      // Load completed submissions if user is admin or if showCompleted is true
-      if (userRoles.isAdmin || showCompleted) {
+      // Load completed submissions if showCompleted is true
+      if (showCompleted) {
         await loadCompletedSubmissions();
       } else {
         setCompletedSubmissions([]);
@@ -84,15 +78,7 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
     }
   }
 
-  const checkUserRoles = async () => {
-    try {
-      const roles = await determineUserRoles(user);
-      setUserRoles(roles);
-    } catch (err) {
-      // Default to no permissions
-      setUserRoles({ isPreApprover: false, isAdmin: false });
-    }
-  }
+  // Removed role checking - all authenticated users have access
 
   // Find guest by external_guest_id and return internal id
   const findGuestByExternalId = async (externalGuestId: string): Promise<string | null> => {
@@ -298,50 +284,44 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
     }
   }
   
-  // Get formatted date from ISO string
+  // Get formatted date - handles both visit dates (simple strings) and timestamps
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Unknown'
     
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short',
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    })
+    // Check if it's a timestamp (contains 'T' or 'Z') or simple date
+    if (dateString.includes('T') || dateString.includes('Z')) {
+      // It's a timestamp (like preApprovedAt, submittedAt)
+      return formatTimestamp(dateString, {
+        weekday: 'short',
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
+      })
+    } else {
+      // It's a simple date string (like visitDate)
+      return formatVisitDate(dateString, {
+        weekday: 'short',
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
+      })
+    }
   }
   
-  // Get relative time from ISO string
-  const getRelativeTime = (dateString: string) => {
-    if (!dateString) return ''
-    
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    
-    // Convert to seconds, minutes, hours, days
-    const diffSec = Math.round(diffMs / 1000)
-    const diffMin = Math.round(diffSec / 60)
-    const diffHour = Math.round(diffMin / 60)
-    const diffDay = Math.round(diffHour / 24)
-    
-    if (diffSec < 60) return 'just now'
-    if (diffMin < 60) return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`
-    if (diffHour < 24) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`
-    if (diffDay < 30) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`
-    
-    return formatDate(dateString)
+  // Get relative time using the centralized utility
+  const getRelativeTime = (timestampString: string) => {
+    return getRelativeTimeUtil(timestampString)
   }
   
 
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       <FloatingElements />
       
       {/* Top navigation bar */}
-      <div className="bg-black text-white p-6">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+      <div className="bg-black text-white p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex items-center gap-4">
             <Image 
               src="/church-logo.png"
@@ -350,21 +330,12 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
               height={40}
               className="filter brightness-0 invert"
             />
-            <h1 className="text-2xl font-bold">2819 Church Admin</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">2819 Church Admin</h1>
           </div>
           
-          <div className="flex items-center gap-6">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-white text-white hover:bg-gray-800"
-              onClick={() => router.push('/admin/verification')}
-            >
-              <Shield className="w-4 h-4 mr-2" />
-              Manual Verification
-            </Button>
-            
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 lg:gap-4 w-full lg:w-auto">
+            {/* Avatar and email - first in order */}
+            <div className="flex items-center gap-3 order-1 sm:order-1">
               <Avatar>
                 <AvatarFallback className="bg-red-600 text-white">
                   {user.email?.[0]?.toUpperCase() || 'U'}
@@ -374,15 +345,16 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
                 )}
               </Avatar>
               
-              <span className="text-sm hidden md:inline-block">
+              <span className="text-sm hidden lg:inline-block">
                 {user.email}
               </span>
             </div>
             
+            {/* Sign Out */}
             <Button 
               variant="outline"
               size="sm"
-              className="border-white text-white hover:bg-red-600"
+              className="border-white text-white hover:bg-red-600 w-full sm:w-auto flex-shrink-0"
               onClick={onLogout}
             >
               <LogOut className="w-4 h-4 mr-2" />
@@ -393,7 +365,10 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
       </div>
       
       {/* Main content area */}
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6">
+        {/* Admin Menu */}
+        <AdminMenu currentPath="/admin" />
+
         {/* Header and controls */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
           <div>
@@ -467,8 +442,8 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
                 />
               </div>
               
-              {/* Completed Submissions (if enabled or admin) */}
-              {(showCompleted || userRoles.isAdmin) && completedSubmissions.length > 0 && (
+              {/* Completed Submissions (if enabled) */}
+              {showCompleted && completedSubmissions.length > 0 && (
                 <GuestListing
                   title="Processed Guests (Approved/Denied)"
                   submissions={completedSubmissions}
@@ -486,7 +461,7 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
       {/* Modal rendered outside main content flow */}
       <GuestDetailsModal
         submission={[...guestSubmissions, ...completedSubmissions].find(sub => sub.id === activeSubmission) || null}
-        userRoles={userRoles}
+        // Removed userRoles - all users have access to all actions
         actionLoading={actionLoading}
         onClose={() => setActiveSubmission(null)}
         onPreApprove={handlePreApprove}

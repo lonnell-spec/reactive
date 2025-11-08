@@ -32,6 +32,7 @@ export const GuestFormSubmitted = ({ submissionId }: GuestFormSubmittedProps) =>
                 src="/church-logo.png"
                 alt="Church Logo" 
                 fill
+                sizes="(max-width: 768px) 100vw, 200px"
                 style={{ objectFit: 'contain' }}
                 className="filter brightness-0 invert"
               />

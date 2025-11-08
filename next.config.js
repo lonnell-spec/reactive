@@ -4,6 +4,22 @@ const nextConfig = {
   reactStrictMode: true,
   // Support for trailing slashes in routes
   trailingSlash: false,
+  // Configure Server Actions body size limit for file uploads
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb'
+    }
+  },
+  // Disable HMR for Server Actions to prevent FormData corruption
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: ['**/lib/guest-form-actions.ts']
+      }
+    }
+    return config;
+  },
   // Updated images configuration with remotePatterns instead of domains
   images: {
     remotePatterns: [
@@ -13,6 +29,8 @@ const nextConfig = {
         pathname: '**',
       },
     ],
+    // Configure image qualities to prevent console warnings
+    qualities: [75, 95],
   },
   // Add empty Turbopack config to silence the warning
   turbopack: {},

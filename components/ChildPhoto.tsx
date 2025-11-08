@@ -2,24 +2,24 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { useProfilePicUrl } from '@/hooks/useProfilePicUrl'
+import { useChildPhotoUrl } from '@/hooks/useChildPhotoUrl'
 
-interface ProfileImageProps {
-  profilePath: string | null
+interface ChildPhotoProps {
+  photoPath: string | null
   alt: string
   width: number
   height: number
   className?: string
 }
 
-export function ProfileImage({ 
-  profilePath, 
+export function ChildPhoto({ 
+  photoPath,
   alt, 
   width, 
   height, 
   className = "object-cover" 
-}: ProfileImageProps) {
-  const { url, loading } = useProfilePicUrl(profilePath)
+}: ChildPhotoProps) {
+  const { url, loading } = useChildPhotoUrl(photoPath)
 
   if (loading) {
     return (
@@ -32,7 +32,7 @@ export function ProfileImage({
     )
   }
 
-  if (!url || !profilePath) {
+  if (!url || !photoPath) {
     return (
       <div 
         className={`flex items-center justify-center bg-gray-200 text-gray-500 text-xs ${className}`}

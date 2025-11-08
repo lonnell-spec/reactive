@@ -22,33 +22,18 @@ grant update on table public.guests to authenticated;
 alter table public.guests enable row level security;
 alter table public.guest_children enable row level security;
   
--- RLS policies for authenticated users
+-- RLS policies for authenticated users (simplified - all authenticated users can access all data)
 drop policy if exists guests_role_select on public.guests;
-create policy guests_role_select on public.guests
+create policy guests_authenticated_select on public.guests
   for select to authenticated
-  using (
-    ((auth.jwt() -> 'app_metadata' ->> 'role') = 'pre_approver' AND status = 'pending_pre_approval') OR
-    ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
-  );
+  using (true);
 
 drop policy if exists guests_admin_update on public.guests;
-create policy guests_admin_update on public.guests
+create policy guests_authenticated_update on public.guests
   for update to authenticated
-  using (
-    ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
-  );
+  using (true);
 
 drop policy if exists guest_children_role_select on public.guest_children;
-create policy guest_children_role_select on public.guest_children
+create policy guest_children_authenticated_select on public.guest_children
   for select to authenticated
-  using (
-    -- Check if the user has access to the parent guest record
-    exists (
-      select 1 from public.guests
-      where guests.id = guest_children.guest_id
-      and (
-            ((auth.jwt() -> 'app_metadata' ->> 'role') = 'pre_approver' AND guests.status = 'pending_pre_approval') OR
-        ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
-      )
-    )
-  );
+  using (true);

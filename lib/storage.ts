@@ -23,3 +23,25 @@ export async function getProfilePicUrl(profilePath: string): Promise<string> {
     return ''
   }
 }
+
+// Generate a signed URL for child photo access using stored photo path
+export async function getChildPhotoUrl(photoPath: string): Promise<string> {
+  if (!photoPath) return ''
+  
+  try {
+    const supabase = await getSupabaseServiceClient()
+    
+    // Use the stored photo path directly
+    const { data, error } = await supabase.storage
+      .from('guest-photos')
+      .createSignedUrl(photoPath, 3600) // 3600 seconds = 1 hour
+    
+    if (error) {
+      return ''
+    }
+    
+    return data.signedUrl
+  } catch (error) {
+    return ''
+  }
+}

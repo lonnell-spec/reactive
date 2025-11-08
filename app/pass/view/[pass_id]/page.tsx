@@ -12,6 +12,7 @@ import { ProfileImage } from '@/components/ProfileImage'
 import { QRCodeDisplay } from '@/components/QRCodeDisplay'
 import { getGuestCredentials } from '@/lib/guest-credentials'
 import Image from 'next/image'
+import { formatTimestamp, formatVisitDate } from '@/lib/date-timezone-utils'
 
 interface GuestPassData {
   id: string
@@ -66,8 +67,8 @@ export default function GuestPassPage() {
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Unknown'
     
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
+    // Simple visit date formatting
+    return formatVisitDate(dateString, {
       weekday: 'long',
       month: 'long', 
       day: 'numeric',
@@ -75,11 +76,8 @@ export default function GuestPassPage() {
     })
   }
 
-  const formatTime = (dateString: string) => {
-    if (!dateString) return 'Unknown'
-    
-    const date = new Date(dateString)
-    return date.toLocaleString('en-US', {
+  const formatTime = (timestampString: string) => {
+    return formatTimestamp(timestampString, {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',

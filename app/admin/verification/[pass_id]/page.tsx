@@ -10,6 +10,7 @@ import { ArrowLeft, Search } from 'lucide-react'
 import { PassDetailsDisplay } from '@/components/PassDetailsDisplay'
 import { verifyGuestPass, markPassAsUsed, PassVerificationResult } from '@/lib/pass-verification'
 import { FloatingElements } from '@/components/FloatingElements'
+import { AdminMenu } from '@/components/AdminMenu'
 import Image from 'next/image'
 
 export default function AdminVerificationWithPassIdPage() {
@@ -103,48 +104,35 @@ export default function AdminVerificationWithPassIdPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       <FloatingElements />
       
       {/* Header */}
-      <div className="bg-black text-white p-6">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-white text-white hover:bg-gray-800"
-            onClick={() => router.push('/admin')}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Admin
-          </Button>
-          
-          <div className="flex items-center gap-4">
-            <Image 
-              src="/church-logo.png"
-              alt="Church Logo" 
-              width={40}
-              height={40}
-              className="filter brightness-0 invert"
-            />
-            <h1 className="text-2xl font-bold">Pass Verification</h1>
-          </div>
-          
-          <div className="ml-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-white text-white hover:bg-gray-800"
-              onClick={() => router.push('/admin/verification')}
-            >
-              <Search className="w-4 h-4 mr-2" />
-              Manual Search
-            </Button>
+      <div className="bg-black text-white p-4 sm:p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            {/* Logo and Title */}
+            <div className="flex items-center gap-4 justify-center sm:justify-start">
+              <Image 
+                src="/church-logo.png"
+                alt="Church Logo" 
+                width={40}
+                height={40}
+                className="filter brightness-0 invert"
+              />
+              <h1 className="text-xl sm:text-2xl font-bold">Pass Verification</h1>
+            </div>
+            
+            {/* Buttons */}
+      
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        {/* Admin Menu */}
+        <AdminMenu currentPath="/admin/verification" />
+
         {/* Pass ID Info */}
         <Card className="border-2 border-gray-200 shadow-md mb-8">
           <CardHeader>

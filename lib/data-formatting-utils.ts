@@ -14,9 +14,11 @@ export interface Submission {
   totalGuests: number;
   hasChildrenForFormationKids: boolean;
   childrenInfo: Array<{
+    id: string;
     name: string;
     dob: string;
     allergies: string;
+    photo_path: string;
   }>;
   carType: string;
   vehicleColor: string;
@@ -60,7 +62,13 @@ export async function formatGuestData(guest: any): Promise<Submission> {
     gatheringTime: guest.gathering_time || '',
     totalGuests: guest.total_guests || 0,
     hasChildrenForFormationKids: Boolean(guest.should_enroll_children),
-    childrenInfo: guest.guest_children || [],
+    childrenInfo: (guest.guest_children || []).map((child: any) => ({
+      id: child.id,
+      name: child.name || '',
+      dob: child.dob || '',
+      allergies: child.allergies || '',
+      photo_path: child.photo_path || ''
+    })),
     carType: guest.vehicle_type || '',
     vehicleColor: guest.vehicle_color || '',
     vehicleMake: guest.vehicle_make || '',

@@ -25,10 +25,10 @@ export const fileValidation = z.custom<File | undefined>(
   { message: 'Expected a file upload' }
 );
 
-// Image file validation with size and type checks
+// Image file validation with size and type checks (after client-side compression)
 export const imageFileValidation = fileValidation
-  .refine(file => file && file.size < 5 * 1024 * 1024, { 
-    message: 'File must be less than 5MB' 
+  .refine(file => file && file.size < 1.2 * 1024 * 1024, { 
+    message: 'Compressed file must be less than 1.2MB' 
   })
   .refine(file => file && file.type.startsWith('image/'), { 
     message: 'File must be an image' 
@@ -56,8 +56,11 @@ export const guestFormSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   email: z.email('Invalid email address'),
   phone: z.string()
-  .regex(/^\d{10}$/, 'Phone number must be exactly 10 digits'),
-  visitDate: z.string().min(1, 'Visit date is required'),
+    .transform(val => val.replace(/\D/g, '')) // Strip all non-digits
+    .refine(val => val.length === 10, 'Phone number must be exactly 10 digits'),
+  visitDate: z.string()
+    .min(1, 'Visit date is required')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Visit date must be in YYYY-MM-DD format'),
   gatheringTime: z.string().min(1, 'Gathering time is required'),
   totalGuests: z.string().min(1, 'Number of guests is required'),
   hasChildrenForFormationKids: z.boolean().default(false),

@@ -11,6 +11,7 @@ import { Search, ArrowLeft } from 'lucide-react'
 import { PassDetailsDisplay } from '@/components/PassDetailsDisplay'
 import { verifyGuestPass, markPassAsUsed, searchGuestByCodeWord, searchGuestByPhone, PassVerificationResult } from '@/lib/pass-verification'
 import { FloatingElements } from '@/components/FloatingElements'
+import { AdminMenu } from '@/components/AdminMenu'
 import Image from 'next/image'
 
 export default function AdminVerificationPage() {
@@ -116,36 +117,33 @@ export default function AdminVerificationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       <FloatingElements />
       
       {/* Header */}
-      <div className="bg-black text-white p-6">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-white text-white hover:bg-gray-800"
-            onClick={() => router.push('/admin')}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Admin
-          </Button>
-          
-          <div className="flex items-center gap-4">
-            <Image 
-              src="/church-logo.png"
-              alt="Church Logo" 
-              width={40}
-              height={40}
-              className="filter brightness-0 invert"
-            />
-            <h1 className="text-2xl font-bold">Pass Verification - Manual Search</h1>
+      <div className="bg-black text-white p-4 sm:p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            {/* Logo and Title */}
+            <div className="flex items-center gap-4 justify-center sm:justify-start">
+              <Image 
+                src="/church-logo.png"
+                alt="Church Logo" 
+                width={40}
+                height={40}
+                className="filter brightness-0 invert"
+              />
+              <h1 className="text-lg sm:text-2xl font-bold text-center sm:text-left">Pass Verification - Manual Search</h1>
+            </div>
+            
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        {/* Admin Menu */}
+        <AdminMenu currentPath="/admin/verification" />
+
         {/* Search Section */}
         <Card className="border-2 border-gray-200 shadow-md mb-8">
           <CardHeader>
@@ -153,12 +151,12 @@ export default function AdminVerificationPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Search Type Selector */}
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant={searchType === 'code_word' ? 'default' : 'outline'}
                 onClick={() => setSearchType('code_word')}
                 size="sm"
-                className={searchType === 'code_word' ? 'bg-red-600 hover:bg-red-700' : ''}
+                className={`w-full sm:w-auto ${searchType === 'code_word' ? 'bg-red-600 hover:bg-red-700' : ''}`}
               >
                 Code Word
               </Button>
@@ -166,34 +164,32 @@ export default function AdminVerificationPage() {
                 variant={searchType === 'phone' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSearchType('phone')}
-                className={searchType === 'phone' ? 'bg-red-600 hover:bg-red-700' : ''}
+                className={`w-full sm:w-auto ${searchType === 'phone' ? 'bg-red-600 hover:bg-red-700' : ''}`}
               >
                 Phone Number
               </Button>
             </div>
 
             {/* Search Input */}
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                
-                  <Input
-                    type="text"
-                    placeholder={
-                      searchType === 'code_word' 
-                        ? "Enter code word (e.g., happy-elephant)" 
-                        : "Enter phone number (e.g., 555-123-4567)"
-                    }
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="text-lg"
-                  />
-                
+                <Input
+                  type="text"
+                  placeholder={
+                    searchType === 'code_word' 
+                      ? "Enter code word (e.g., happy-elephant)" 
+                      : "Enter phone number (e.g., 555-123-4567)"
+                  }
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="text-base sm:text-lg"
+                />
               </div>
               <Button
                 onClick={handleSearch}
                 disabled={isVerifying || (!passId.trim() && !searchTerm.trim())}
-                className="bg-red-600 hover:bg-red-700 text-white px-8"
+                className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto sm:px-8"
               >
                 {isVerifying ? (
                   <>
@@ -232,12 +228,12 @@ export default function AdminVerificationPage() {
         {/* Instructions */}
         {!verificationResult && (
           <Card className="border-2 border-gray-200 shadow-md">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-semibold mb-4">How to Search for Guests</h3>
-              <div className="text-gray-600 space-y-2">
+            <CardContent className="p-4 sm:p-8 text-center">
+              <h3 className="text-lg sm:text-xl font-semibold mb-4">How to Search for Guests</h3>
+              <div className="text-gray-600 space-y-2 text-sm sm:text-base">
                 <p><strong>Code Word:</strong> Enter their unique code word (e.g., "happy-elephant")</p>
                 <p><strong>Phone Number:</strong> Enter their phone number in any format</p>
-                <p className="mt-4 text-sm">Once found, you can mark the guest as attended if their pass is valid.</p>
+                <p className="mt-4 text-xs sm:text-sm">Once found, you can mark the guest as attended if their pass is valid.</p>
               </div>
             </CardContent>
           </Card>

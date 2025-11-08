@@ -15,18 +15,21 @@ import { AnimatedSection } from './AnimatedSection'
 import { FloatingElements } from './FloatingElements'
 import { submitGuestForm } from '@/lib/guest-form-actions'
 import { guestFormSchema, GuestFormData } from '@/lib/types'
+import { stripPhoneFormatting } from '@/lib/phone-utils'
 import { GuestFormSubmitted } from './forms/GuestFormSubmitted'
 import { PersonalInformationSection } from './forms/sections/PersonalInformationSection'
 import { VisitDetailsSection } from './forms/sections/VisitDetailsSection'
 import { ChildrenInformationSection } from './forms/sections/ChildrenInformationSection'
 import { VehicleInformationSection } from './forms/sections/VehicleInformationSection'
 import { AdditionalInformationSection } from './forms/sections/AdditionalInformationSection'
+import { CompressionProvider, useCompression } from './forms/CompressionContext'
 
-export function GuestForm() {
+function GuestFormInner() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [submissionId, setSubmissionId] = useState('')
+  const { isAnyCompressing } = useCompression()
   
   // Initialize React Hook Form with proper typing
   const methods = useForm<GuestFormData>({
@@ -53,39 +56,64 @@ export function GuestForm() {
 
   // Form submission handler using React Hook Form with explicit typing
   const onSubmit: SubmitHandler<GuestFormData> = async (data) => {
+    // Prevent submission during compression
+    if (isAnyCompressing) {
+      setError('Please wait for image compression to complete before submitting.')
+      return
+    }
+    
+    // Validate files before creating FormData
+    if (data.profilePicture) {
+      if (!(data.profilePicture instanceof File) || data.profilePicture.size === 0) {
+        setError('Profile picture is invalid. Please try uploading again.')
+        return
+      }
+    }
+    
+    data.childrenInfo.forEach((child, index) => {
+      if (child.photo) {
+        if (!(child.photo instanceof File) || child.photo.size === 0) {
+          setError(`Child photo ${index + 1} is invalid. Please try uploading again.`)
+          return
+        }
+      }
+    })
+    
     setLoading(true)
     setError('')
     
     try {
-      // Create form data to send to the server
-      const formData = new FormData()
-      formData.append('firstName', data.firstName)
-      formData.append('lastName', data.lastName)
-      formData.append('email', data.email)
-      formData.append('phone', data.phone)
-      formData.append('visitDate', data.visitDate)
-      formData.append('gatheringTime', data.gatheringTime)
-      formData.append('totalGuests', data.totalGuests)
-      formData.append('hasChildrenForFormationKids', data.hasChildrenForFormationKids.toString())
+      // Create FormData structure for server submission
+      let formData = new FormData()
       
-      // We need to stringify childrenInfo but exclude the photo files
-      // as they'll be appended separately to avoid JSON serialization issues
-      const childrenInfoWithoutPhotos = data.childrenInfo.map(child => ({
-        name: child.name,
-        dob: child.dob,
-        allergies: child.allergies || ''
-      }));
+      // Create a single JSON payload for all text data
+      const textData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: stripPhoneFormatting(data.phone),
+        visitDate: data.visitDate,
+        gatheringTime: data.gatheringTime,
+        totalGuests: data.totalGuests,
+        hasChildrenForFormationKids: data.hasChildrenForFormationKids,
+        childrenInfo: data.childrenInfo.map(child => ({
+          name: child.name,
+          dob: child.dob,
+          allergies: child.allergies || ''
+        })),
+        carType: data.carType,
+        vehicleColor: data.vehicleColor || '',
+        vehicleMake: data.vehicleMake || '',
+        vehicleModel: data.vehicleModel || '',
+        foodAllergies: data.foodAllergies || '',
+        specialNeeds: data.specialNeeds || '',
+        additionalNotes: data.additionalNotes || ''
+      }
       
-      formData.append('childrenInfo', JSON.stringify(childrenInfoWithoutPhotos))
-      formData.append('carType', data.carType)
-      formData.append('vehicleColor', data.vehicleColor || '')
-      formData.append('vehicleMake', data.vehicleMake || '')
-      formData.append('vehicleModel', data.vehicleModel || '')
-      formData.append('foodAllergies', data.foodAllergies || '')
-      formData.append('specialNeeds', data.specialNeeds || '')
-      formData.append('additionalNotes', data.additionalNotes || '')
+      // Append as a single JSON string
+      formData.append('formData', JSON.stringify(textData))
       
-      // Add profile picture - this is already validated by Zod
+      // Add profile picture
       formData.append('profilePicture', data.profilePicture!)
 
       // Add child photos
@@ -95,8 +123,34 @@ export function GuestForm() {
         }
       })
 
-      // Submit the form using the server action
-      const result = await submitGuestForm(formData)
+      // Validate FormData before submission
+      const entriesCount = Array.from(formData.entries()).length
+      if (entriesCount === 0) {
+        throw new Error('FormData is empty before submission - this indicates a client-side issue')
+      }
+
+      // Submit the form using the server action with retry logic for dev server issues
+      let result = await submitGuestForm(formData)
+      let retryCount = 0
+      const maxRetries = 2
+      
+      while (!result.success && result.message?.includes('empty FormData') && retryCount < maxRetries) {
+        retryCount++
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Recreate FormData for retry (in case of corruption)
+        const retryFormData = new FormData()
+        retryFormData.append('formData', JSON.stringify(textData))
+        retryFormData.append('profilePicture', data.profilePicture!)
+        data.childrenInfo.forEach((child, index) => {
+          if (child.photo) {
+            retryFormData.append(`childPhoto_${index}`, child.photo)
+          }
+        })
+        formData = retryFormData
+        
+        result = await submitGuestForm(formData)
+      }
 
       if (!result.success) {
         throw new Error(result.message || 'Submission failed')
@@ -182,7 +236,7 @@ export function GuestForm() {
                       <Button 
                         type="submit" 
                         className="w-full bg-red-600 hover:bg-red-700 text-white text-2xl py-8 border-2 border-red-800 shadow-lg text-[20px]"
-                        disabled={loading}
+                        disabled={loading || isAnyCompressing}
                       >
                         {loading ? (
                           <motion.div
@@ -192,6 +246,8 @@ export function GuestForm() {
                           >
                             ⟳
                           </motion.div>
+                        ) : isAnyCompressing ? (
+                          'Compressing Images...'
                         ) : (
                           'Submit Guest Registration'
                         )}
@@ -212,16 +268,17 @@ export function GuestForm() {
           <p className="text-lg text-red-600 mt-4 font-medium">
             Sharing this private link is prohibited and can prevent guests from being approved in the future.
           </p>
-          
-          <div className="mt-8 flex justify-center">
-            <Link href="/status" className="inline-flex items-center text-gray-500 hover:text-gray-700 text-sm transition-colors duration-200">
-              <Search className="w-3 h-3 mr-1" />
-              Check Registration Status
-            </Link>
-          </div>
         </AnimatedSection>
       </div>
     </div>
+  )
+}
+
+export function GuestForm() {
+  return (
+    <CompressionProvider>
+      <GuestFormInner />
+    </CompressionProvider>
   )
 }
 

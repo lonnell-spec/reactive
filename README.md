@@ -1,163 +1,112 @@
-# Reactive Church Guest Registration
+# Reactive Church Guest Registration System
 
-This is a Next.js application for Reactive Church Guest Registration. The application allows guests to register for church services, and administrators to approve or deny registrations.
+A modern, secure guest registration system built for churches using Next.js, Supabase, and TextMagic. Features a two-step approval workflow, role-based administration, SMS/email notifications, and mobile-responsive design.
 
-## Features
+## 🚀 Quick Start
 
-- Guest registration form with photo upload
-- Child registration with photo upload
-- Two-step approval workflow (pre-approval and final approval)
-- Role-based admin dashboard for managing registrations
-- SMS notifications for pre-approval
-- Status check for guests to see their registration status
-- QR code generation for approved guests
+### For Users (Church Staff)
+👉 **[User Guide](USER_GUIDE.md)** - How to use the system, create accounts, manage guests, and navigate the interface.
 
-## Setup
+### For Developers
+👉 **[Developer Guide](DEVELOPER_GUIDE.md)** - Technical setup, configuration, and development information.
 
-### 1. Clone the repository
+## 📋 System Overview
 
-```bash
-git clone https://github.com/yourusername/reactive-church-guest-registration.git
-cd reactive-church-guest-registration
-```
+### Core Features
+- **Guest Registration Form** - Mobile-friendly form with photo uploads for guests and children
+- **Two-Step Approval Workflow** - Pre-approval → Final approval process
+- **Role-Based Administration** - Admin and pre-approver roles with different permissions
+- **SMS & Email Notifications** - Automated notifications via TextMagic integration
+- **QR Code Generation** - Secure passes for approved guests
+- **Mobile Responsive** - Works seamlessly on phones, tablets, and desktop
+- **Image Compression** - Automatic client-side photo compression for faster uploads
 
-### 2. Install dependencies
+### User Roles
+- **Admin** - Full access to all features, user management, and system configuration
+- **Pre-Approver** - Can review and pre-approve guest registrations
+- **Guest** - Can submit registration forms and check status
 
-```bash
-npm install
-```
+### Workflow
+1. **Guest Submission** - Guests fill out registration form with photos
+2. **Pre-Approval** - Pre-approvers receive notifications and review submissions
+3. **Final Approval** - Admins review pre-approved guests and generate passes
+4. **Guest Access** - Approved guests receive QR codes and access information
 
-### 3. Set up environment variables
+## 🛡️ Security Features
 
-Create a `.env.local` file in the root directory with the following variables:
+- **Supabase Authentication** - Secure user authentication and session management
+- **Row Level Security (RLS)** - Database-level access controls
+- **Role-Based Authorization** - Function-level permission checks
+- **File Upload Validation** - Type and size restrictions on uploads
+- **Form Validation** - Client and server-side input validation using Zod
+- **Environment-Based Configuration** - Secure credential management
 
-```
-# Supabase URL and keys
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+## 🧪 Testing
 
-# App configuration
-APP_URL=http://localhost:3000
-
-# Environment mode (development or production)
-NODE_ENV=development
-
-# TextMagic API credentials (for SMS notifications)
-TEXTMAGIC_API_KEY=your-textmagic-api-key
-TEXTMAGIC_USERNAME=your-textmagic-username
-
-# Pre-approver phone number (E.164 format)
-PRE_APPROVER_PHONE=+1234567890
-```
-
-### 4. Set up Supabase
-
-1. Create a new Supabase project
-2. Run the SQL scripts in the `supabase` directory to set up the database schema, RLS policies, and storage buckets:
-   - `schema.sql` - Creates the database tables
-   - `rls.sql` - Sets up Row Level Security policies
-   - `storage.sql` - Creates the storage buckets for photos
-3. See the detailed `SUPABASE_SETUP_GUIDE.md` for complete instructions on setting up user roles and testing the workflow
-
-### 5. Set up TextMagic (for SMS notifications)
-
-1. Create a TextMagic account at https://www.textmagic.com/
-2. Get your API credentials from the TextMagic dashboard
-3. Add them to your `.env.local` file
-
-### 6. Run the development server
+The system includes comprehensive unit tests for critical business logic:
 
 ```bash
-npm run dev
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+**Test Coverage:**
+- Form validation and data parsing (16 tests)
+- Data transformation utilities (18 tests)  
+- Business logic workflows (17 tests)
+- Utility functions (18 tests)
 
-## Development Routes
+## 📱 Mobile Support
 
-For development purposes, the following routes are available:
+- **Responsive Design** - Optimized for all screen sizes
+- **Touch-Friendly Interface** - Large buttons and easy navigation
+- **Image Compression** - Automatic photo resizing for mobile uploads
+- **Offline-First Forms** - Client-side validation before submission
 
-- `/dev` - Development dashboard with links to all development routes
-- `/dev/admin` - Pre-authenticated admin dashboard
-- `/dev/status` - Status check page
-- `/dev/qrcode` - QR code display
-- `/dev/login` - Development login page
+## 🔧 Technology Stack
 
-## Production Routes
+- **Frontend:** Next.js 16, React 18, TypeScript, Tailwind CSS
+- **Backend:** Next.js API Routes, Server Actions
+- **Database:** Supabase (PostgreSQL)
+- **Authentication:** Supabase Auth
+- **Storage:** Supabase Storage
+- **SMS/Email:** TextMagic API
+- **Testing:** Jest with TypeScript support
+- **Deployment:** Vercel-ready
 
-- `/` - Guest registration form
-- `/admin` - Admin dashboard (requires login)
-- `/status` - Status check page
+## 📚 Documentation
 
-## Implementation Details
+- **[User Guide](USER_GUIDE.md)** - Complete guide for church staff
+- **[Developer Guide](DEVELOPER_GUIDE.md)** - Technical setup and development
+- **[API Documentation](API_DOCS.md)** - Server actions and endpoints
+- **[Testing Guide](lib/__tests__/README.md)** - Unit testing information
 
-### Supabase Integration
+## 🤝 Contributing
 
-The application uses Supabase for:
-- Database storage (guests and children)
-- File storage (profile pictures and child photos)
-- Authentication (admin login)
-- Role-based access control for the admin dashboard
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Run tests (`npm test`)
+4. Commit changes (`git commit -m 'Add amazing feature'`)
+5. Push to branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
-### Role-Based Access Control
+## 📄 License
 
-The Admin Dashboard implements role-based access control using Supabase JWT claims:
-- **`pre_approver`**: Can view and update `pending_pre_approval` guests
-- **`pending_approver`**: Can view and update `pending` guests
-- **`admin`**: Can view and update all guests
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Users can have multiple roles (e.g., `pre_approver,pending_approver`).
+## 🆘 Support
 
-### TextMagic Integration
+For technical issues or questions:
+1. Check the [User Guide](USER_GUIDE.md) for common tasks
+2. Review the [Developer Guide](DEVELOPER_GUIDE.md) for technical issues
+3. Open an issue on GitHub for bugs or feature requests
 
-TextMagic is used for sending SMS notifications to pre-approvers when a new guest registration is submitted.
+---
 
-#### Development Mode
-
-When `NODE_ENV` is set to `development` in your `.env.local` file, the application will not actually send SMS messages. Instead, it will log the message content to the console. This is useful for development and testing without incurring SMS costs or sending real messages.
-
-Example console output in development mode:
-```
-========== TEXTMAGIC SMS (DEV MODE) ==========
-To: +1234567890
-Message:
-New guest registration requires pre-approval:
-Name: John Doe
-Visit Date: 10/25/2025
-Time: 10:30 AM
-Guests: 2
-Approve at: http://localhost:3000/admin
-==============================================
-```
-
-### Pre-Approval Workflow
-
-The guest registration system implements a two-step approval process:
-
-1. **Pre-Approval**: When a guest submits a registration form, it's initially set to `pending_pre_approval` status. Pre-approvers receive an SMS notification and can review the submission in the admin dashboard. They can either pre-approve or deny the registration.
-
-2. **Final Approval**: If pre-approved, the registration status changes to `pending`. Pending approvers can then review the submission and either approve or deny it. If approved, a QR code and codeword are generated for the guest.
-
-### Transaction Handling
-
-The guest registration process is implemented with proper transaction handling:
-1. Insert guest record
-2. Upload profile picture
-3. Insert child records
-4. Upload child photos
-5. Send pre-approval notification
-
-If any step fails, the process is rolled back using the Supabase service role key.
-
-### Security
-
-- The application uses Supabase Row Level Security to ensure data security
-- The anon key is used for regular operations
-- The service role key is used for rollback operations
-- File uploads are validated for type and size
-- Form data is validated using Zod
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+**Built with ❤️ for church communities**

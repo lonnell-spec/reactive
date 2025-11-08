@@ -21,7 +21,7 @@ export async function mapFormDataToGuestRecord(
     last_name: parsedData.lastName,
     email: parsedData.email,
     phone: parsedData.phone,
-    visit_date: parsedData.visitDate,
+    visit_date: parsedData.visitDate, // Store as simple YYYY-MM-DD date string
     gathering_time: parsedData.gatheringTime,
     total_guests: parsedData.totalGuests,
     should_enroll_children: parsedData.hasChildrenForFormationKids,

@@ -62,28 +62,28 @@ export function Modal({
 
   const modalContent = (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-600/50"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-gray-600/50"
       onClick={(e) => handleBackdropClick(e, onClose)}
     >
       <div 
         className={`
-          relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] 
-          overflow-y-auto transform transition-all duration-200 ease-out
+          relative bg-white rounded-lg shadow-xl w-full max-h-[95vh] sm:max-h-[90vh]
+          max-w-full sm:max-w-4xl overflow-y-auto transform transition-all duration-200 ease-out
           ${className}
         `}
         onClick={(e) => e.stopPropagation()} // Prevent backdrop click when clicking modal content
       >
         {/* Header with title and close button */}
         {(title || showCloseButton) && (
-          <div className="sticky top-0 bg-black text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
+          <div className="sticky top-0 bg-black text-white px-4 sm:px-6 py-4 flex justify-between items-center rounded-t-lg">
             {title && (
-              <h2 className="text-xl font-semibold">{title}</h2>
+              <h2 className="text-lg sm:text-xl font-semibold truncate pr-4">{title}</h2>
             )}
             {showCloseButton && (
               <Button
                 variant="outline"
                 size="sm"
-                className="border-white text-white hover:bg-gray-800"
+                className="border-white text-white hover:bg-gray-800 flex-shrink-0"
                 onClick={onClose}
               >
                 <X className="w-4 h-4" />
@@ -93,7 +93,7 @@ export function Modal({
         )}
         
         {/* Modal content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {children}
         </div>
       </div>

@@ -29,22 +29,42 @@ async function getPhoneNumbersByRole(role: string, fallbackRole: string | undefi
     
     // Filter users with the specified role and extract phone numbers
     phoneNumbers = users.users
-      .filter(user => 
-        user.app_metadata?.role === role || 
-        user.user_metadata?.role === role
-      )
+      .filter(user => {
+        // Check both array-based roles and legacy single role
+        const appRoles = user.app_metadata?.roles || []
+        const userRoles = user.user_metadata?.roles || []
+        const legacyAppRole = user.app_metadata?.role
+        const legacyUserRole = user.user_metadata?.role
+        
+        return (
+          (Array.isArray(appRoles) && appRoles.includes(role)) ||
+          (Array.isArray(userRoles) && userRoles.includes(role)) ||
+          legacyAppRole === role ||
+          legacyUserRole === role
+        )
+      })
       .map(user => user.user_metadata?.phone)
-      .filter(phone => phone && phone.trim().length > 0);
+      .filter((phone): phone is string => phone !== undefined && phone !== null && phone.trim().length > 0);
 
-      // If no phone numbers found and fallback role is provided, try fallback role
+    // If no phone numbers found and fallback role is provided, try fallback role
     if (phoneNumbers.length === 0 && fallbackRole) {
       phoneNumbers = users.users
-        .filter(user => 
-          user.app_metadata?.role === fallbackRole || 
-          user.user_metadata?.role === fallbackRole
-        )
+        .filter(user => {
+          // Check both array-based roles and legacy single role for fallback
+          const appRoles = user.app_metadata?.roles || []
+          const userRoles = user.user_metadata?.roles || []
+          const legacyAppRole = user.app_metadata?.role
+          const legacyUserRole = user.user_metadata?.role
+          
+          return (
+            (Array.isArray(appRoles) && appRoles.includes(fallbackRole)) ||
+            (Array.isArray(userRoles) && userRoles.includes(fallbackRole)) ||
+            legacyAppRole === fallbackRole ||
+            legacyUserRole === fallbackRole
+          )
+        })
         .map(user => user.user_metadata?.phone)
-        .filter(phone => phone && phone.trim().length > 0);
+        .filter((phone): phone is string => phone !== undefined && phone !== null && phone.trim().length > 0);
     }
   } else {
     // Use test phone numbers from environment variable
@@ -84,20 +104,40 @@ async function getEmailAddressesByRole(role: string, fallbackRole: string | unde
     
     // Filter users with the specified role and extract email addresses
     emailAddresses = users.users
-      .filter(user => 
-        user.app_metadata?.role === role || 
-        user.user_metadata?.role === role
-      )
+      .filter(user => {
+        // Check both array-based roles and legacy single role
+        const appRoles = user.app_metadata?.roles || []
+        const userRoles = user.user_metadata?.roles || []
+        const legacyAppRole = user.app_metadata?.role
+        const legacyUserRole = user.user_metadata?.role
+        
+        return (
+          (Array.isArray(appRoles) && appRoles.includes(role)) ||
+          (Array.isArray(userRoles) && userRoles.includes(role)) ||
+          legacyAppRole === role ||
+          legacyUserRole === role
+        )
+      })
       .map(user => user.email)
       .filter((email): email is string => email !== undefined && email !== null && email.trim().length > 0);
 
     // If no email addresses found and fallback role is provided, try fallback role
     if (emailAddresses.length === 0 && fallbackRole) {
       emailAddresses = users.users
-        .filter(user => 
-          user.app_metadata?.role === fallbackRole || 
-          user.user_metadata?.role === fallbackRole
-        )
+        .filter(user => {
+          // Check both array-based roles and legacy single role for fallback
+          const appRoles = user.app_metadata?.roles || []
+          const userRoles = user.user_metadata?.roles || []
+          const legacyAppRole = user.app_metadata?.role
+          const legacyUserRole = user.user_metadata?.role
+          
+          return (
+            (Array.isArray(appRoles) && appRoles.includes(fallbackRole)) ||
+            (Array.isArray(userRoles) && userRoles.includes(fallbackRole)) ||
+            legacyAppRole === fallbackRole ||
+            legacyUserRole === fallbackRole
+          )
+        })
         .map(user => user.email)
         .filter((email): email is string => email !== undefined && email !== null && email.trim().length > 0);
     }

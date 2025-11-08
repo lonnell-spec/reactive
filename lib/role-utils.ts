@@ -29,26 +29,24 @@ export async function isValidRole(role: string): Promise<boolean> {
 }
 
 /**
- * Gets environment variable for role registration code
+ * Gets environment variable for registration codes
  * Pure function for testability (with dependency injection)
  * 
- * @param role The role to get code for
+ * @param codeType The type of code to get ('admin' for admin role, 'general' for no role)
  * @param envGetter Function to get environment variables (for testing)
  * @returns Registration code from environment
  */
 export async function getRoleRegistrationCode(
-  role: string,
+  codeType: string,
   envGetter: (key: string) => string | undefined = (key) => process.env[key]
 ): Promise<string> {
-  const envKeys: Record<string, string> = {
-    'pre_approver': 'PRE_APPROVER_REGISTRATION_CODE',
-    'admin': 'ADMIN_REGISTRATION_CODE'
-  };
-  
-  const envKey = envKeys[role];
-  if (!envKey) {
-    throw new Error(`No environment key defined for role: ${role}`);
+  if (codeType === 'admin') {
+    return envGetter('ADMIN_REGISTRATION_CODE') || '';
   }
   
-  return envGetter(envKey) || '';
+  if (codeType === 'general') {
+    return envGetter('REGISTRATION_CODE') || '';
+  }
+  
+  throw new Error(`No environment key defined for code type: ${codeType}. Supported types: 'admin', 'general'.`);
 }

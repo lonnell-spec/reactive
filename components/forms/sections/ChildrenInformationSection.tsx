@@ -9,6 +9,9 @@ import { Checkbox } from '../../ui/checkbox';
 import { Button } from '../../ui/button';
 import { Textarea } from '../../ui/textarea';
 import { motion } from 'motion/react';
+import { compressChildPhoto, validateFileForCompression, formatFileSize } from '@/lib/image-compression-utils';
+import { useState } from 'react';
+import { useCompression } from '../CompressionContext';
 
 /**
  * Children Information section of the guest form
@@ -21,6 +24,8 @@ export const ChildrenInformationSection = () => {
   });
   
   const hasChildren = watch("hasChildrenForFormationKids");
+  const { setChildCompressing } = useCompression();
+  const [compressionStates, setCompressionStates] = useState<{[key: number]: { isCompressing: boolean; status: string }}>({});
   
   // Helper function to add a child
   const addChild = () => {
@@ -119,17 +124,84 @@ export const ChildrenInformationSection = () => {
                         <Input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => onChange(e.target.files?.[0] || null)}
-                          className={`border-2 ${errors.childrenInfo?.[index]?.photo ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4`}
+                          disabled={compressionStates[index]?.isCompressing}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) {
+                              onChange(null);
+                              setCompressionStates(prev => ({
+                                ...prev,
+                                [index]: { isCompressing: false, status: '' }
+                              }));
+                              return;
+                            }
+
+                            try {
+                              // Validate file before compression
+                              validateFileForCompression(file, 10); // Max 10MB before compression
+                              
+                              setCompressionStates(prev => ({
+                                ...prev,
+                                [index]: { 
+                                  isCompressing: true, 
+                                  status: `Compressing ${file.name} (${formatFileSize(file.size)})...` 
+                                }
+                              }));
+                              setChildCompressing(index, true);
+                              
+                              // Compress the image
+                              const compressedFile = await compressChildPhoto(file);
+                              
+                              setCompressionStates(prev => ({
+                                ...prev,
+                                [index]: { 
+                                  isCompressing: false, 
+                                  status: `Compressed to ${formatFileSize(compressedFile.size)} ✓` 
+                                }
+                              }));
+                              setChildCompressing(index, false);
+                              onChange(compressedFile);
+                              
+                              // Clear status after 3 seconds
+                              setTimeout(() => {
+                                setCompressionStates(prev => ({
+                                  ...prev,
+                                  [index]: { isCompressing: false, status: '' }
+                                }));
+                              }, 3000);
+                            } catch (error) {
+                              console.error('Compression failed:', error);
+                              setCompressionStates(prev => ({
+                                ...prev,
+                                [index]: { 
+                                  isCompressing: false, 
+                                  status: `Error: ${error instanceof Error ? error.message : 'Compression failed'}` 
+                                }
+                              }));
+                              setChildCompressing(index, false);
+                              onChange(null);
+                              // Clear input
+                              e.target.value = '';
+                            }
+                          }}
+                          className={`border-2 ${errors.childrenInfo?.[index]?.photo ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white file:text-sm file:font-medium hover:file:bg-red-700 file:cursor-pointer ${compressionStates[index]?.isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}
                           {...field}
                         />
                       )}
                     />
+                    {compressionStates[index]?.status && (
+                      <div className={`text-sm mt-2 ${compressionStates[index].status.includes('Error') ? 'text-red-600' : compressionStates[index].status.includes('✓') ? 'text-green-600' : 'text-blue-600'}`}>
+                        {compressionStates[index].status}
+                      </div>
+                    )}
                     {errors.childrenInfo?.[index]?.photo && (
                       <FormFieldError message={errors.childrenInfo[index].photo?.message || 'Child photo is required'} />
                     )}
                     </div>
                   </div>
+                  <p className="text-xs text-gray-600">
+                    Images will be automatically compressed. Max 10MB before compression.
+                  </p>
                 </div>
                 <div className="space-y-3">
                   <Label className="text-xl">Allergies</Label>

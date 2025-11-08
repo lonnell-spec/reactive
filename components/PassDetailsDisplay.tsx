@@ -7,6 +7,7 @@ import { Badge } from './ui/badge'
 import { CheckCircle, XCircle, Calendar, Phone, User, Clock } from 'lucide-react'
 import { ProfileImage } from './ProfileImage'
 import { PassVerificationResult } from '@/lib/pass-verification'
+import { formatTimestamp, formatVisitDate } from '@/lib/date-timezone-utils'
 
 interface PassDetailsDisplayProps {
   verificationResult: PassVerificationResult
@@ -24,10 +25,8 @@ export function PassDetailsDisplay({
   isMarkingAttended
 }: PassDetailsDisplayProps) {
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Unknown'
-    
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
+    // Simple visit date formatting
+    return formatVisitDate(dateString, {
       weekday: 'long',
       month: 'long', 
       day: 'numeric',
@@ -35,11 +34,8 @@ export function PassDetailsDisplay({
     })
   }
 
-  const formatTime = (dateString: string) => {
-    if (!dateString) return 'Unknown'
-    
-    const date = new Date(dateString)
-    return date.toLocaleString('en-US', {
+  const formatTime = (timestampString: string) => {
+    return formatTimestamp(timestampString, {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
@@ -50,14 +46,14 @@ export function PassDetailsDisplay({
 
   if (!verificationResult.success) {
     return (
-      <Card className="border-2 border-red-600 shadow-xl max-w-2xl mx-auto">
+      <Card className="border-2 border-red-600 shadow-xl max-w-2xl mx-auto w-full">
         <CardHeader className="bg-red-600 text-white text-center">
           <div className="flex items-center justify-center mb-4">
             <XCircle className="w-16 h-16" />
           </div>
           <CardTitle className="text-2xl">Invalid Pass</CardTitle>
         </CardHeader>
-        <CardContent className="p-8 text-center">
+        <CardContent className="p-4 sm:p-8 text-center">
           <p className="text-xl text-red-800 mb-6">
             {verificationResult.message}
           </p>
@@ -73,8 +69,8 @@ export function PassDetailsDisplay({
 
   if (!guest) {
     return (
-      <Card className="border-2 border-red-600 shadow-xl max-w-2xl mx-auto">
-        <CardContent className="p-8 text-center">
+      <Card className="border-2 border-red-600 shadow-xl max-w-2xl mx-auto w-full">
+        <CardContent className="p-4 sm:p-8 text-center">
           <p className="text-xl text-red-800">No guest data available</p>
         </CardContent>
       </Card>
@@ -82,24 +78,24 @@ export function PassDetailsDisplay({
   }
 
   return (
-    <Card className="border-2 border-green-600 shadow-xl max-w-2xl mx-auto">
+    <Card className="border-2 border-green-600 shadow-xl max-w-2xl mx-auto w-full">
       <CardHeader className="bg-green-600 text-white text-center">
         <div className="flex items-center justify-center mb-4">
           <CheckCircle className="w-16 h-16" />
         </div>
         <CardTitle className="text-2xl">Valid Guest Pass</CardTitle>
       </CardHeader>
-      <CardContent className="p-8">
-        <div className="space-y-8">
+      <CardContent className="p-4 sm:p-8">
+        <div className="space-y-6 sm:space-y-8">
           {/* Guest Profile Section */}
           <div className="text-center">
             <div className="w-32 h-32 mx-auto mb-6 bg-gray-100 rounded-full overflow-hidden">
               <ProfileImage
                 profilePath={guest.profilePicture}
                 alt={`${guest.firstName} ${guest.lastName}`}
-                width={128}
-                height={128}
-                className="object-cover"
+                width={160}
+                height={160}
+                className="object-cover w-full h-full"
               />
             </div>
             <h3 className="text-3xl font-bold text-black mb-2">
@@ -116,7 +112,7 @@ export function PassDetailsDisplay({
           </div>
 
           {/* Visit Information */}
-          <div className="bg-gray-50 p-6 rounded-lg border-2 border-gray-200">
+          <div className="bg-gray-50 p-4 sm:p-6 rounded-lg border-2 border-gray-200">
             <h4 className="text-xl font-semibold text-black mb-4 flex items-center">
               <Calendar className="w-6 h-6 mr-2 text-green-600" />
               Visit Details
@@ -134,7 +130,7 @@ export function PassDetailsDisplay({
           </div>
 
           {/* Pass Status */}
-          <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
+          <div className="bg-blue-50 p-4 sm:p-6 rounded-lg border-2 border-blue-200">
             <h4 className="text-xl font-semibold text-black mb-4 flex items-center">
               <Clock className="w-6 h-6 mr-2 text-blue-600" />
               Pass Status

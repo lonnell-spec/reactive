@@ -1,4 +1,4 @@
-# Reactive Church Guest Registration System--
+# Reactive Church Guest Registration System
 
 A modern, secure guest registration system built for churches using Next.js, Supabase, and TextMagic. Features a two-step approval workflow, role-based administration, SMS/email notifications, and mobile-responsive design.
 
@@ -22,9 +22,8 @@ A modern, secure guest registration system built for churches using Next.js, Sup
 - **Image Compression** - Automatic client-side photo compression for faster uploads
 
 ### User Roles
-- **Admin** - Full access to all features, user management, and system configuration
-- **Pre-Approver** - Can review and pre-approve guest registrations
-- **Guest** - Can submit registration forms and check status
+- **Admin** - Gets Final Approval Notifications. Full access to all features, user management, and system configuration
+- **Pre-Approver** - Gets Pre-Approver notifications. Full access to all features, user management, and system configuration
 
 ### Workflow
 1. **Guest Submission** - Guests fill out registration form with photos
@@ -87,15 +86,6 @@ npm run test:coverage
 - **[API Documentation](API_DOCS.md)** - Server actions and endpoints
 - **[Testing Guide](lib/__tests__/README.md)** - Unit testing information
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests (`npm test`)
-4. Commit changes (`git commit -m 'Add amazing feature'`)
-5. Push to branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -105,8 +95,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For technical issues or questions:
 1. Check the [User Guide](USER_GUIDE.md) for common tasks
 2. Review the [Developer Guide](DEVELOPER_GUIDE.md) for technical issues
-3. Open an issue on GitHub for bugs or feature requests
 
 ---
-
-**Built with ❤️ for church communities**

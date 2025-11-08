@@ -1,4 +1,4 @@
-# Reactive Church Guest Registration System-
+# Reactive Church Guest Registration System--
 
 A modern, secure guest registration system built for churches using Next.js, Supabase, and TextMagic. Features a two-step approval workflow, role-based administration, SMS/email notifications, and mobile-responsive design.
 

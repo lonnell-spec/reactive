@@ -7,8 +7,8 @@ This guide is for church staff who will be using the guest registration system t
 ### Creating Your Account
 
 1. **Get Registration Code** - Ask your church administrator for either:
-   - **Admin Code** - Full access to all features
-   - **General Code** - Pre-approver access only
+   - **Admin Code** - Full access to admin - receives Approver notifications.
+   - **General Code** - Full access to admin - receives Pre-approver notifications.
 
 2. **Sign Up Process:**
    - Go to the admin login page
@@ -23,17 +23,24 @@ This guide is for church staff who will be using the guest registration system t
 
 ### Understanding User Roles
 
-**👑 Admin Users Can:**
+**👤 All Users Currently Can:**
 - View and manage all guest registrations
 - Approve or deny guests at any stage
 - Manage user accounts and assign roles
 - Update their own profile information
 - Access all system features
 
+**👑 Admin Users Can:**
+- Receive SMS/email notifications for Approval
+
 **🔍 Pre-Approver Users Can:**
-- View guests pending pre-approval
-- Pre-approve or deny initial submissions
-- Receive SMS/email notifications for new guests
+- Receive SMS/email notifications for Pre-Approval
+
+**‼️Important! You must assign roles properly to get correct notifications to roles:**
+- If you have Admin role you'll get Approver Notifications
+- If you only have Pre-Approver you'll only get Pre-Approve notifications
+- If you have both roles you'll get all notifications
+- See User Management and Notifcation Sections below
 
 ## 📱 Navigating the System
 
@@ -120,10 +127,9 @@ Use this feature to verify guest passes on-site:
 
 ### Role Combinations
 
-- **Admin Only** - Full system access, no pre-approval notifications
-- **Pre-Approver Only** - Can pre-approve, gets notifications
-- **Admin + Pre-Approver** - Full access plus notifications
-- **No Roles** - Cannot access admin features
+- **Admin Only** - Full system access - Approval notifcatoins
+- **Pre-Approver Only** - Full system access - Pre-approver notifications
+- **Admin + Pre-Approver** - Full access plus ALL notifications
 
 ## ⚙️ Profile Management
 
@@ -144,13 +150,12 @@ Use this feature to verify guest passes on-site:
 Pre-approvers receive SMS messages when:
 - New guests submit registrations
 - Messages include guest name, visit date, and approval link
+- Can also respond Yes/No
 
-### Email Notifications
-
-Similar notifications are sent via email with:
-- Guest details
-- Direct links to the admin dashboard
-- Action buttons for quick approval/denial
+Admins/Approvers receive SMS messages when:
+- New guests have been pre-approved
+- Messages include guest name, visit date, and approval link
+- Can also respond Yes/No
 
 ## 📱 Mobile Tips
 
@@ -200,6 +205,12 @@ Similar notifications are sent via email with:
 2. Have them create account at login page
 3. Go to User Management
 4. Assign appropriate roles
+
+### How to General Users
+1. Give them the non admin registration code
+2. Have them create account at login page
+3. Go to User Management
+4. Assign appropriate roles (such as Pre-Approver)
 
 ## 🔒 Security Best Practices
 

@@ -184,7 +184,7 @@ export const ChildrenInformationSection = () => {
                               e.target.value = '';
                             }
                           }}
-                          className={`border-2 ${errors.childrenInfo?.[index]?.photo ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white file:text-sm file:font-medium hover:file:bg-red-700 file:cursor-pointer ${compressionStates[index]?.isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`border-2 ${errors.childrenInfo?.[index]?.photo ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} h-auto py-3 px-3 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white file:text-sm file:font-medium hover:file:bg-red-700 file:cursor-pointer w-full ${compressionStates[index]?.isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}
                           {...field}
                         />
                       )}

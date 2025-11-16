@@ -13,9 +13,9 @@ const config = {
   ],
   
   // Module path mapping to match Next.js aliases
-  moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/$1'
-  },
+  // moduleNameMapping: {
+  //   '^@/(.*)$': '<rootDir>/$1'
+  // },
   
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],

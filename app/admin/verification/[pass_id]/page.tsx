@@ -3,13 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Search } from 'lucide-react'
 import { PassDetailsDisplay } from '@/components/PassDetailsDisplay'
 import { verifyGuestPass, markPassAsUsed, PassVerificationResult } from '@/lib/pass-verification'
-import { FloatingElements } from '@/components/FloatingElements'
 import { AdminMenu } from '@/components/AdminMenu'
 import Image from 'next/image'
 
@@ -105,7 +102,6 @@ export default function AdminVerificationWithPassIdPage() {
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
-      <FloatingElements />
       
       {/* Header */}
       <div className="bg-black text-white p-4 sm:p-6">

@@ -8,8 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, User, Save } from 'lucide-react'
-import { FloatingElements } from '@/components/FloatingElements'
+import { User, Save } from 'lucide-react'
 import { updateMyProfile } from '@/lib/profile-client-actions'
 import { getProfileConfig } from '@/lib/profile-config-actions'
 import { AdminMenu } from '@/components/AdminMenu'
@@ -105,7 +104,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
-      <FloatingElements />
       
       {/* Header */}
       <div className="bg-black text-white p-4 sm:p-6">

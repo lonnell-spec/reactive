@@ -4,7 +4,6 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { AnimatedText } from '../AnimatedText';
 import { AnimatedSection } from '../AnimatedSection';
-import { FloatingElements } from '../FloatingElements';
 
 interface GuestFormSubmittedProps {
   submissionId: string;
@@ -18,7 +17,6 @@ interface GuestFormSubmittedProps {
 export const GuestFormSubmitted = ({ submissionId }: GuestFormSubmittedProps) => {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <FloatingElements />
       <AnimatedSection className="w-full max-w-md">
         <Card className="border-2 border-black shadow-2xl">
           <CardHeader className="text-center bg-black text-white">

@@ -1,5 +1,5 @@
--- Simple daily cleanup job for old guest records
--- Deletes guests whose visit_date was more than 1 day ago
+-- Simple weekly cleanup job for old guest records
+-- Archives and deletes guests whose visit_date was older than today
 -- Also removes associated storage files
 
 -- Enable pg_cron extension
@@ -18,17 +18,8 @@ declare
   error_count integer := 0;
   cutoff_date date;
 begin
-  -- Calculate cutoff date (more than 1 day ago)
-  cutoff_date := current_date - interval '1 day';
-  
-  -- Safety check: don't run if cutoff date seems wrong
-  if cutoff_date > current_date then
-    return json_build_object(
-      'success', false,
-      'message', 'Invalid cutoff date calculated',
-      'cutoff_date', cutoff_date
-    );
-  end if;
+  -- Cutoff date is today's date
+  cutoff_date := current_date;
   
   -- Process each old guest record
   for guest_record in
@@ -42,32 +33,53 @@ begin
     begin
       -- Archive the guest record before deletion
       insert into public.guest_archive (
-        original_guest_id,
         first_name,
         last_name_initial,
         final_status,
         visit_date,
+        gathering_time,
         did_visit
       ) values (
-        guest_record.id,
         guest_record.first_name,
         left(guest_record.last_name, 1),  -- First letter of last name
         guest_record.status,
         guest_record.visit_date,
+        guest_record.gathering_time,
         coalesce(guest_record.is_used, false)  -- True if they actually visited
       );
       
       archive_count := archive_count + 1;
       
       -- Delete guest profile photo from storage
-      if guest_record.photo_path is not null then
-        perform storage.delete_object('guest-photos', guest_record.photo_path);
-      end if;
-      
+      PERFORM net.http_delete(
+          url := (
+              SELECT (current_setting('anon.base_url') || '/storage/v1/object/guest_photos/' || guest_record.photo_path)
+          ),
+          headers := jsonb_build_object(
+              'Authorization', 'Bearer ' || current_setting('request.jwt.claim.service_role_key')
+          )
+      );
+
       -- Delete children photos from storage
-      if guest_record.child_photos is not null then
-        perform storage.delete_object('guest-photos', unnest(guest_record.child_photos));
-      end if;
+      DECLARE child_photo_path text;
+      BEGIN
+        FOREACH child_photo_path IN ARRAY guest_record.child_photos
+        LOOP
+
+          CONTINUE WHEN child_photo_path IS NULL;
+
+          CONTINUE WHEN child_photo_path = '';
+
+          PERFORM net.http_delete(
+            url := (
+                SELECT (current_setting('anon.base_url') || '/storage/v1/object/guest_photos/' || child_photo_path)
+            ),
+            headers := jsonb_build_object(
+                'Authorization', 'Bearer ' || current_setting('request.jwt.claim.service_role_key')
+            )
+          );
+        END LOOP;
+      END;
       
       -- Delete the guest record (children deleted via CASCADE)
       delete from public.guests where id = guest_record.id;
@@ -77,8 +89,8 @@ begin
     exception when others then
       error_count := error_count + 1;
       -- Log error but continue
-      raise warning 'Failed to cleanup guest % %: %', 
-        guest_record.first_name, guest_record.last_name, sqlerrm;
+      raise warning 'Failed to cleanup guest % %. Visit Date:%. Error: %', 
+        guest_record.first_name, left(guest_record.last_name, 1), guest_record.visit_date, sqlerrm;
     end;
   end loop;
   
@@ -98,14 +110,10 @@ $$;
 -- Grant permissions
 grant execute on function public.cleanup_old_guests() to postgres;
 
--- Schedule daily cleanup at noon UTC
--- Adjust the hour if you need a different timezone:
--- For Central Time (UTC-6): use '0 18 * * *' (6 PM UTC = 12 PM CT)
--- For Eastern Time (UTC-5): use '0 17 * * *' (5 PM UTC = 12 PM ET)
--- For Pacific Time (UTC-8): use '0 20 * * *' (8 PM UTC = 12 PM PT)
+-- Schedule weekly cleanup at 6:00 AM UTC on Monday
 select cron.schedule(
-  'daily-guest-cleanup',
-  '0 12 * * *',  -- Daily at 12:00 PM UTC
+  'weekly-guest-cleanup',
+  '0 6 * * 1',  -- Daily at 6:00 AM UTC on Monday
   'select public.cleanup_old_guests();'
 );
 

@@ -21,6 +21,7 @@ grant update on table public.guests to authenticated;
 -- Enable RLS and define policies
 alter table public.guests enable row level security;
 alter table public.guest_children enable row level security;
+alter table public.guest_archive enable row level security;
   
 -- RLS policies for authenticated users (simplified - all authenticated users can access all data)
 drop policy if exists guests_role_select on public.guests;

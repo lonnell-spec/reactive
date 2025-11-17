@@ -7,12 +7,9 @@ import { Button } from './ui/button'
 import { Card, CardContent, CardHeader } from './ui/card'
 import { Alert, AlertDescription } from './ui/alert'
 import Image from 'next/image'
-import Link from 'next/link'
 import { motion } from 'motion/react'
-import { Search } from 'lucide-react'
 import { AnimatedText } from './AnimatedText'
 import { AnimatedSection } from './AnimatedSection'
-import { FloatingElements } from './FloatingElements'
 import { submitGuestForm } from '@/lib/guest-form-actions'
 import { guestFormSchema, GuestFormData } from '@/lib/types'
 import { stripPhoneFormatting } from '@/lib/phone-utils'
@@ -171,7 +168,6 @@ function GuestFormInner() {
 
   return (
     <div className="min-h-screen bg-white py-12 px-4 relative">
-      <FloatingElements />
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <AnimatedSection className="text-center mb-12">
@@ -191,12 +187,8 @@ function GuestFormInner() {
             />
           </motion.div>
           <AnimatedText 
-            text="2819 CHURCH"
-            className="text-6xl font-bold text-black mb-4"
-          />
-          <AnimatedText 
             text="Pastor Philip Anthony Mitchell's Guest Registration"
-            className="text-2xl text-gray-600"
+            className="text-2xl text-gray-600 font-bold"
             delay={0.5}
           />
         </AnimatedSection>

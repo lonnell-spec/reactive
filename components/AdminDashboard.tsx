@@ -6,8 +6,7 @@ import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { Alert, AlertDescription } from './ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LogOut, RefreshCw, Shield } from 'lucide-react'
-import { FloatingElements } from './FloatingElements'
+import { LogOut, RefreshCw } from 'lucide-react'
 import Image from 'next/image'
 import { GuestStatus } from '@/lib/types'
 import { preApproveGuest, denyPreApproval, approveGuest, denyGuest } from '@/lib/admin-actions'
@@ -317,7 +316,6 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
-      <FloatingElements />
       
       {/* Top navigation bar */}
       <div className="bg-black text-white p-4 sm:p-6">

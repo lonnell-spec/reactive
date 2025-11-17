@@ -9,10 +9,9 @@ import { Label } from './ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Alert, AlertDescription } from './ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { UserPlus, LogIn, Settings, AlertCircle, CheckCircle } from 'lucide-react'
+import { UserPlus, LogIn, AlertCircle, CheckCircle } from 'lucide-react'
 import { AnimatedText } from './AnimatedText'
 import { AnimatedSection } from './AnimatedSection'
-import { FloatingElements } from './FloatingElements'
 import { motion } from 'motion/react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Image from 'next/image'
@@ -149,7 +148,6 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   
   return (
     <div className="min-h-screen bg-white py-12 px-4">
-      <FloatingElements />
       <div className="max-w-md mx-auto">
         {/* Header */}
         <AnimatedSection className="text-center mb-12">

@@ -4,11 +4,8 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { CheckCircle, XCircle, Calendar, Clock, QrCode, Key } from 'lucide-react'
-import { FloatingElements } from '@/components/FloatingElements'
 import { AnimatedSection } from '@/components/AnimatedSection'
-import { ProfileImage } from '@/components/ProfileImage'
 import { QRCodeDisplay } from '@/components/QRCodeDisplay'
 import { getGuestCredentials } from '@/lib/guest-credentials'
 import Image from 'next/image'
@@ -89,7 +86,6 @@ export default function GuestPassPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <FloatingElements />
         <AnimatedSection className="w-full max-w-md">
           <Card className="border-2 border-black shadow-2xl">
             <CardContent className="p-8 text-center">
@@ -105,7 +101,6 @@ export default function GuestPassPage() {
   if (error || !guestData) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <FloatingElements />
         <AnimatedSection className="w-full max-w-md">
           <Card className="border-2 border-red-600 shadow-2xl">
             <CardHeader className="text-center bg-red-600 text-white">
@@ -139,7 +134,6 @@ export default function GuestPassPage() {
 
   return (
     <div className="min-h-screen bg-white py-12 px-4 relative">
-      <FloatingElements />
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <AnimatedSection className="text-center mb-12">

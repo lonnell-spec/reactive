@@ -145,7 +145,7 @@ export async function formatPreApprovalMessage(
   const formattedDate = await formatDateString(guest.visit_date);
 
   return `
-  Great news! Your visit to Formation Church has been pre-approved!
+  Great news! Your visit to 2819 Church has been pre-approved!
 
   Please wait for final approval. You will receive another message with your guest pass when approved.
 

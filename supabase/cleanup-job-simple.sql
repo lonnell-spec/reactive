@@ -42,6 +42,7 @@ begin
     begin
       -- Archive the guest record before deletion
       insert into public.guest_archive (
+        original_guest_id,
         first_name,
         last_name_initial,
         final_status,
@@ -49,6 +50,7 @@ begin
         gathering_time,
         did_visit
       ) values (
+        guest_record.id,
         guest_record.first_name,
         left(guest_record.last_name, 1),  -- First letter of last name
         guest_record.status,
@@ -62,7 +64,7 @@ begin
       -- Delete guest profile photo from storage
       PERFORM net.http_delete(
           url := (
-              SELECT (supabase_url || '/storage/v1/object/guest_photos/' || guest_record.photo_path)
+              SELECT (supabase_url || '/storage/v1/object/guest-photos/' || guest_record.photo_path)
           ),
           headers := jsonb_build_object(
               'Authorization', 'Bearer ' || service_role_key
@@ -81,7 +83,7 @@ begin
 
           PERFORM net.http_delete(
             url := (
-                SELECT (supabase_url || '/storage/v1/object/guest_photos/' || child_photo_path)
+                SELECT (supabase_url || '/storage/v1/object/guest-photos/' || child_photo_path)
             ),
             headers := jsonb_build_object(
                 'Authorization', 'Bearer ' || service_role_key

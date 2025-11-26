@@ -133,7 +133,8 @@ export async function preApproveGuest(
     
     // Send notifications
     await approverNotificationFn(guestId);
-    await guestPreApprovalNotificationFn(guestId);
+    // TODO: Remove this at end of project
+    // await guestPreApprovalNotificationFn(guestId); 
     
     return {
       success: true,
@@ -195,8 +196,9 @@ export async function denyPreApproval(
       throw new Error(`Database error: ${updateError.message}`);
     }
     
+    // TODO: Remove this at end of project
     // Send SMS notification to the guest
-    await notificationFn(guestId);
+    // await notificationFn(guestId);
     
     return {
       success: true,
@@ -307,8 +309,9 @@ export async function denyGuest(
       throw new Error(`Database error: ${updateError.message}`);
     }
     
+    // TODO: Remove this at end of project
     // Send SMS notification to the guest
-    await notificationFn(guestId);
+    // await notificationFn(guestId);
     
     return {
       success: true,

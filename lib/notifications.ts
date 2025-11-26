@@ -478,7 +478,7 @@ export async function notifyGuestOfApproval(guestId: string) {
 
     // Send both SMS and Email notifications
     let smsSuccess = false;
-    let emailSuccess = false;
+    // let emailSuccess = false;
     let smsError = '';
     let emailError = '';
 
@@ -495,31 +495,29 @@ export async function notifyGuestOfApproval(guestId: string) {
     }
 
     // Send Email if email address exists
-    if (guest.email) {
-      const { success, error } = await sendTextMagicEmail({
-        email: guest.email,
-        message: message,
-        subject: 'Guest Registration Approved - Your Pass is Ready!',
-      });
-      emailSuccess = success;
-      if (!success) {
-        emailError = error || 'Unknown email error';
-      }
-    }
+    // if (guest.email) {
+    //   const { success, error } = await sendTextMagicEmail({
+    //     email: guest.email,
+    //     message: message,
+    //     subject: 'Guest Registration Approved - Your Pass is Ready!',
+    //   });
+    //   emailSuccess = success;
+    //   if (!success) {
+    //     emailError = error || 'Unknown email error';
+    //   }
+    // }
 
     // If both failed, throw an error
-    if (!smsSuccess && !emailSuccess) {
+    if (!smsSuccess) {
       const errors = [];
       if (guest.phone && smsError) errors.push(`SMS: ${smsError}`);
-      if (guest.email && emailError) errors.push(`Email: ${emailError}`);
-      if (!guest.phone && !guest.email) errors.push('No phone or email address available');
+      if (!guest.phone) errors.push('No phone number available');
       throw new Error(`Failed to send notifications: ${errors.join(', ')}`);
     }
     
     // Build success message
     const successMethods = [];
     if (smsSuccess && guest.phone) successMethods.push(`SMS to ${guest.phone}`);
-    if (emailSuccess && guest.email) successMethods.push(`Email to ${guest.email}`);
     
     return {
       success: true,

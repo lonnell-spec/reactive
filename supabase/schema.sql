@@ -78,6 +78,7 @@ create table if not exists public.guest_archive (
   last_name_initial text not null,
   final_status text not null,
   visit_date date not null,
+  gathering_time text not null,
   did_visit boolean not null default false,
   archived_at timestamptz not null default now()
 );

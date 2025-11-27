@@ -18,15 +18,19 @@ interface GuestInfo {
  * Pure function for testability
  * 
  * @param guest Guest information
- * @param siteUrl URL for the site
+ * @param deepLinkUrl URL for the admin deep link
+ * @param approvalUrl URL for the approval action
+ * @param denialUrl URL for the denial action
  * @returns Formatted message string
  */
 export async function formatPreApproverMessage(
   guest: GuestInfo,
-  passViewUrl: string
+  deepLinkUrl: string,
+  approvalUrl: string,
+  denialUrl: string
 ): Promise<string> {
-  if (!guest || !passViewUrl) {
-    throw new Error('Guest information and URL are required');
+  if (!guest || !deepLinkUrl || !approvalUrl || !denialUrl) {
+    throw new Error('Guest information and URLs are required');
   }
 
   const formattedDate = await formatDateString(guest.visit_date);
@@ -37,7 +41,11 @@ Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
 Visit Date: ${formattedDate}
 Time: ${guest.gathering_time}
 Guests: ${guest.total_guests}
-Approve at: ${passViewUrl}
+Guest details at: ${deepLinkUrl}
+
+Approve: ${approvalUrl}
+
+Deny: ${denialUrl}
 `.trim();
 }
 
@@ -47,14 +55,18 @@ Approve at: ${passViewUrl}
  * 
  * @param guest Guest information
  * @param deepLinkUrl URL for deep link to a guest detail
+ * @param approvalUrl URL for the approval action
+ * @param denialUrl URL for the denial action
  * @returns Formatted message string
  */
 export async function formatApproverMessage(
   guest: GuestInfo,
-  deepLinkUrl: string
+  deepLinkUrl: string,
+  approvalUrl: string,
+  denialUrl: string
 ): Promise<string> {
-  if (!guest || !deepLinkUrl) {
-    throw new Error('Guest information and admin URL are required');
+  if (!guest || !deepLinkUrl || !approvalUrl || !denialUrl) {
+    throw new Error('Guest information and URLs are required');
   }
 
   const formattedDate = await formatDateString(guest.visit_date);
@@ -65,7 +77,11 @@ Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
 Visit Date: ${formattedDate}
 Time: ${guest.gathering_time}
 Guests: ${guest.total_guests}
-Approve at: ${deepLinkUrl}
+Guest details at: ${deepLinkUrl}
+
+Approve: ${approvalUrl}
+
+Deny: ${denialUrl}
 `.trim();
 }
 

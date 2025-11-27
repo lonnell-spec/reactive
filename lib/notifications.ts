@@ -4,7 +4,7 @@ import { sendTextMagicSMS, sendTextMagicEmail } from './textmagic';
 import { GuestStatus } from './types';
 import { formatApprovalMessage, formatApproverMessage, formatDenialMessage, formatPreApprovalMessage, formatPreApproverMessage } from './message-utils';
 import { getSupabaseServiceClient } from './supabase-client';
-import { generateDeepLinkUrl, generatePassViewUrl } from './guest-credentials';
+import { generateDeepLinkUrl, generatePassViewUrl, generateApprovalUrl, generateDenialUrl } from './guest-credentials';
 
 /**
  * Retrieves phone numbers for users with a specific role
@@ -267,30 +267,28 @@ export async function sendPreApproverNotification(guestId: string) {
     
     // Format the message using pure utility function
     const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
-    const message = await formatPreApproverMessage(guest, deepLinkUrl);
-
-    const textMessage = `
-    ${message}
-    You may also reply "YES" to approve, "NO" to deny.
-    `;
+    const approvalUrl = await generateApprovalUrl(guest.text_callback_reference_id);
+    const denialUrl = await generateDenialUrl(guest.text_callback_reference_id);
+    const message = await formatPreApproverMessage(guest, deepLinkUrl, approvalUrl, denialUrl);
 
     // Send SMS and Email to all recipients using the extracted functions
     let smsSuccess = false;
     let emailSuccess = false;
 
     if (phoneNumbers.length > 0) {
-      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, textMessage, guest.text_callback_reference_id);
+      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
       smsSuccess = smsResult.success;
     }
 
-    if (emailAddresses.length > 0) {
-      const emailResult = await sendEmailToMultipleAddresses(
-        emailAddresses, 
-        message, 
-        'New Guest Registration - Pre-Approval Required'
-      );
-      emailSuccess = emailResult.success;
-    }
+    // TODO: Remove this at end of project
+    // if (emailAddresses.length > 0) {
+    //   const emailResult = await sendEmailToMultipleAddresses(
+    //     emailAddresses, 
+    //     message, 
+    //     'New Guest Registration - Pre-Approval Required'
+    //   );
+    //   emailSuccess = emailResult.success;
+    // }
     
     // Return true if either SMS or email was sent successfully
     return smsSuccess || emailSuccess;
@@ -326,20 +324,17 @@ export async function sendApproverNotification(guestId: string) {
     }
 
     const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
+    const approvalUrl = await generateApprovalUrl(guest.text_callback_reference_id);
+    const denialUrl = await generateDenialUrl(guest.text_callback_reference_id);
     // Format the message using pure utility function
-    const message = await formatApproverMessage(guest, deepLinkUrl);
-
-    const textMessage = `
-    ${message}
-    You may also reply "YES" to approve, "NO" to deny.
-    `;
+    const message = await formatApproverMessage(guest, deepLinkUrl, approvalUrl, denialUrl);
 
     // Send SMS and Email to all recipients using the extracted functions
     let smsSuccess = false;
     let emailSuccess = false;
 
     if (phoneNumbers.length > 0) {
-      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, textMessage, guest.text_callback_reference_id);
+      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
       smsSuccess = smsResult.success;
     }
 

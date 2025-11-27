@@ -239,3 +239,23 @@ export async function generateDeepLinkUrl(external_guest_id: string) {
 export async function generatePassVerificationUrl(passId: string) {
   return `${process.env.APP_URL}/admin/verification/${passId}`;
 }
+
+/**
+ * Generates a URL for the automation workflow approval action
+ * 
+ * @param textCallbackReferenceId The text callback reference ID to generate a URL for
+ * @returns Promise<string> The URL for the automation workflow approval action
+ */
+export async function generateApprovalUrl(textCallbackReferenceId: number) {
+  return `${process.env.APP_URL}/automation/workflow?action=approve&textrefid=${textCallbackReferenceId.toString()}`;
+}
+
+/**
+ * Generates a URL for the automation workflow denial action
+ * 
+ * @param textCallbackReferenceId The text callback reference ID to generate a URL for
+ * @returns Promise<string> The URL for the automation workflow denial action
+ */
+export async function generateDenialUrl(textCallbackReferenceId: number) {
+  return `${process.env.APP_URL}/automation/workflow?action=deny&textrefid=${textCallbackReferenceId.toString()}`;
+}

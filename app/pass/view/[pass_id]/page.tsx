@@ -196,31 +196,33 @@ export default function GuestPassPage() {
                     <Key className="w-6 h-6 mr-2 text-blue-600" />
                     Your Code Word
                   </h4>
-                  <div className="text-4xl font-bold text-blue-600 mb-2">
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600 mb-2 break-words">
                     {guestData.codeWord}
                   </div>
                   <p className="text-gray-600">Present this code word when you arrive</p>
                 </div>
 
                 {/* QR Code */}
-                <div className="bg-white p-6 rounded-lg border-2 border-gray-200 text-center">
+                <div className="bg-white p-4 sm:p-6 rounded-lg border-2 border-gray-200 text-center">
                   <h4 className="text-xl font-semibold text-black mb-4 flex items-center justify-center">
                     <QrCode className="w-6 h-6 mr-2 text-gray-600" />
                     Your QR Code
                   </h4>
                   
-                  <QRCodeDisplay 
-                    value={guestData.qrCode} 
-                    size={200}
-                    className="mx-auto mb-4"
-                    guestInfo={{
-                      firstName: guestData.firstName,
-                      lastName: guestData.lastName
-                    }}
-                    showDirections={true}
-                  />
+                  <div className="max-w-[200px] mx-auto mb-4">
+                    <QRCodeDisplay 
+                      value={guestData.qrCode} 
+                      size={200}
+                      className="w-full"
+                      guestInfo={{
+                        firstName: guestData.firstName,
+                        lastName: guestData.lastName
+                      }}
+                      showDirections={true}
+                    />
+                  </div>
                   
-                  <p className="text-gray-600">Show this QR code at check-in</p>
+                  <p className="text-gray-600 text-sm sm:text-base">Show this QR code at check-in</p>
                 </div>
 
                 {/* Expiry Info */}

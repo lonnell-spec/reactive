@@ -39,15 +39,14 @@ export function QRCodeDisplay({
   return (
     <div className={`text-center ${className}`}>
       <div 
-        className="inline-block border-2 border-gray-300 rounded-lg p-2 bg-white"
-        style={{ width: size + 16, height: size + 16 }}
+        className="inline-block border-2 border-gray-300 rounded-lg p-2 bg-white max-w-full"
       >
         <Image
           src={value}
           alt={`QR Code${guestInfo ? ` for ${guestInfo.firstName} ${guestInfo.lastName}` : ''}`}
           width={size}
           height={size}
-          className="rounded"
+          className="rounded w-full h-auto"
           style={{ width: size, height: size }}
         />
       </div>

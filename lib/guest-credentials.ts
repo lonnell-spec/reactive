@@ -217,7 +217,7 @@ export async function generateUniqueCodeWord(
  * @returns Promise<string> The URL for the pass view page
  */
 export async function generatePassViewUrl(passId: string) {
-  return `${process.env.APP_URL}/pass/view/${passId}`;
+  return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/pass/view/${passId}`;
 }
 
 /**
@@ -227,7 +227,7 @@ export async function generatePassViewUrl(passId: string) {
  * @returns Promise<string> The URL for the admin page deep link to a guest detail
  */
 export async function generateDeepLinkUrl(external_guest_id: string) {
-  return `${process.env.APP_URL}/admin/${external_guest_id}`;
+  return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/admin/${external_guest_id}`;
 }
 
 /**
@@ -237,7 +237,7 @@ export async function generateDeepLinkUrl(external_guest_id: string) {
  * @returns Promise<string> The URL for the admin page deep link to a guest verification
  */
 export async function generatePassVerificationUrl(passId: string) {
-  return `${process.env.APP_URL}/admin/verification/${passId}`;
+  return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/admin/verification/${passId}`;
 }
 
 /**
@@ -247,7 +247,7 @@ export async function generatePassVerificationUrl(passId: string) {
  * @returns Promise<string> The URL for the automation workflow approval action
  */
 export async function generateApprovalUrl(textCallbackReferenceId: number) {
-  return `${process.env.APP_URL}/automation/workflow?action=approve&textrefid=${textCallbackReferenceId.toString()}`;
+  return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/automation/workflow?action=approve&textrefid=${textCallbackReferenceId.toString()}`;
 }
 
 /**
@@ -257,5 +257,5 @@ export async function generateApprovalUrl(textCallbackReferenceId: number) {
  * @returns Promise<string> The URL for the automation workflow denial action
  */
 export async function generateDenialUrl(textCallbackReferenceId: number) {
-  return `${process.env.APP_URL}/automation/workflow?action=deny&textrefid=${textCallbackReferenceId.toString()}`;
+  return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/automation/workflow?action=deny&textrefid=${textCallbackReferenceId.toString()}`;
 }

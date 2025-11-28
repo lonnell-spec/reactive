@@ -390,44 +390,68 @@ export async function notifyGuestOfPreApproval(guestId: string) {
     let smsError = '';
     let emailError = '';
 
-    // Send SMS if phone number exists
-    if (guest.phone) {
-      const { success, error } = await sendTextMagicSMS({
-        phone: guest.phone,
-        message: message,
-      });
-      smsSuccess = success;
-      if (!success) {
-        smsError = error || 'Unknown SMS error';
+    const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS === 'true';
+
+    // Send SMS
+    if (useActualPhones) {
+      // Send to actual guest phone
+      if (guest.phone) {
+        const { success, error } = await sendTextMagicSMS({
+          phone: guest.phone,
+          message: message,
+        });
+        smsSuccess = success;
+        if (!success) {
+          smsError = error || 'Unknown SMS error';
+        }
+      }
+    } else {
+      // Send to test phone numbers
+      const testPhones = process.env.NOTIFICATION_TEST_PHONE_NUMBERS;
+      if (testPhones) {
+        const phoneNumbers = testPhones
+          .split(',')
+          .map(phone => phone.trim())
+          .filter(phone => phone.length > 0);
+        
+        const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message);
+        smsSuccess = smsResult.success;
+        if (!smsResult.success) {
+          smsError = `Failed to send to test numbers`;
+        }
       }
     }
 
     // Send Email if email address exists
-    if (guest.email) {
-      const { success, error } = await sendTextMagicEmail({
-        email: guest.email,
-        message: message,
-        subject: 'Guest Registration Pre-Approved',
-      });
-      emailSuccess = success;
-      if (!success) {
-        emailError = error || 'Unknown email error';
-      }
-    }
+    // if (guest.email) {
+    //   const { success, error } = await sendTextMagicEmail({
+    //     email: guest.email,
+    //     message: message,
+    //     subject: 'Guest Registration Pre-Approved',
+    //   });
+    //   emailSuccess = success;
+    //   if (!success) {
+    //     emailError = error || 'Unknown email error';
+    //   }
+    // }
 
     // If both failed, throw an error
     if (!smsSuccess && !emailSuccess) {
       const errors = [];
-      if (guest.phone && smsError) errors.push(`SMS: ${smsError}`);
-      if (guest.email && emailError) errors.push(`Email: ${emailError}`);
-      if (!guest.phone && !guest.email) errors.push('No phone or email address available');
+      if (smsError) errors.push(`SMS: ${smsError}`);
+      if (!guest.phone && useActualPhones) errors.push('No phone number available');
       throw new Error(`Failed to send notifications: ${errors.join(', ')}`);
     }
     
     // Build success message
     const successMethods = [];
-    if (smsSuccess && guest.phone) successMethods.push(`SMS to ${guest.phone}`);
-    if (emailSuccess && guest.email) successMethods.push(`Email to ${guest.email}`);
+    if (smsSuccess) {
+      if (useActualPhones && guest.phone) {
+        successMethods.push(`SMS to ${guest.phone}`);
+      } else {
+        successMethods.push(`SMS to test numbers`);
+      }
+    }
     
     return {
       success: true,
@@ -477,15 +501,35 @@ export async function notifyGuestOfApproval(guestId: string) {
     let smsError = '';
     let emailError = '';
 
-    // Send SMS if phone number exists
-    if (guest.phone) {
-      const { success, error } = await sendTextMagicSMS({
-        phone: guest.phone,
-        message: message,
-      });
-      smsSuccess = success;
-      if (!success) {
-        smsError = error || 'Unknown SMS error';
+    const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS?.toLowerCase() === 'true';
+
+    // Send SMS
+    if (useActualPhones) {
+      // Send to actual guest phone
+      if (guest.phone) {
+        const { success, error } = await sendTextMagicSMS({
+          phone: guest.phone,
+          message: message,
+        });
+        smsSuccess = success;
+        if (!success) {
+          smsError = error || 'Unknown SMS error';
+        }
+      }
+    } else {
+      // Send to test phone numbers
+      const testPhones = process.env.NOTIFICATION_TEST_PHONE_NUMBERS;
+      if (testPhones) {
+        const phoneNumbers = testPhones
+          .split(',')
+          .map(phone => phone.trim())
+          .filter(phone => phone.length > 0);
+        
+        const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message);
+        smsSuccess = smsResult.success;
+        if (!smsResult.success) {
+          smsError = `Failed to send to test numbers`;
+        }
       }
     }
 
@@ -505,14 +549,20 @@ export async function notifyGuestOfApproval(guestId: string) {
     // If both failed, throw an error
     if (!smsSuccess) {
       const errors = [];
-      if (guest.phone && smsError) errors.push(`SMS: ${smsError}`);
-      if (!guest.phone) errors.push('No phone number available');
+      if (smsError) errors.push(`SMS: ${smsError}`);
+      if (!guest.phone && useActualPhones) errors.push('No phone number available');
       throw new Error(`Failed to send notifications: ${errors.join(', ')}`);
     }
     
     // Build success message
     const successMethods = [];
-    if (smsSuccess && guest.phone) successMethods.push(`SMS to ${guest.phone}`);
+    if (smsSuccess) {
+      if (useActualPhones && guest.phone) {
+        successMethods.push(`SMS to ${guest.phone}`);
+      } else {
+        successMethods.push(`SMS to test numbers`);
+      }
+    }
     
     return {
       success: true,
@@ -565,44 +615,68 @@ export async function notifyGuestOfDenial(guestId: string) {
     let smsError = '';
     let emailError = '';
 
-    // Send SMS if phone number exists
-    if (guest.phone) {
-      const { success, error } = await sendTextMagicSMS({
-        phone: guest.phone,
-        message: message,
-      });
-      smsSuccess = success;
-      if (!success) {
-        smsError = error || 'Unknown SMS error';
+    const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS === 'true';
+
+    // Send SMS
+    if (useActualPhones) {
+      // Send to actual guest phone
+      if (guest.phone) {
+        const { success, error } = await sendTextMagicSMS({
+          phone: guest.phone,
+          message: message,
+        });
+        smsSuccess = success;
+        if (!success) {
+          smsError = error || 'Unknown SMS error';
+        }
+      }
+    } else {
+      // Send to test phone numbers
+      const testPhones = process.env.NOTIFICATION_TEST_PHONE_NUMBERS;
+      if (testPhones) {
+        const phoneNumbers = testPhones
+          .split(',')
+          .map(phone => phone.trim())
+          .filter(phone => phone.length > 0);
+        
+        const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message);
+        smsSuccess = smsResult.success;
+        if (!smsResult.success) {
+          smsError = `Failed to send to test numbers`;
+        }
       }
     }
 
     // Send Email if email address exists
-    if (guest.email) {
-      const { success, error } = await sendTextMagicEmail({
-        email: guest.email,
-        message: message,
-        subject: 'Guest Registration Update',
-      });
-      emailSuccess = success;
-      if (!success) {
-        emailError = error || 'Unknown email error';
-      }
-    }
+    // if (guest.email) {
+    //   const { success, error } = await sendTextMagicEmail({
+    //     email: guest.email,
+    //     message: message,
+    //     subject: 'Guest Registration Update',
+    //   });
+    //   emailSuccess = success;
+    //   if (!success) {
+    //     emailError = error || 'Unknown email error';
+    //   }
+    // }
 
     // If both failed, throw an error
-    if (!smsSuccess && !emailSuccess) {
+    if (!smsSuccess) {
       const errors = [];
-      if (guest.phone && smsError) errors.push(`SMS: ${smsError}`);
-      if (guest.email && emailError) errors.push(`Email: ${emailError}`);
-      if (!guest.phone && !guest.email) errors.push('No phone or email address available');
+      if (smsError) errors.push(`SMS: ${smsError}`);
+      if (!guest.phone && useActualPhones) errors.push('No phone number available');
       throw new Error(`Failed to send notifications: ${errors.join(', ')}`);
     }
     
     // Build success message
     const successMethods = [];
-    if (smsSuccess && guest.phone) successMethods.push(`SMS to ${guest.phone}`);
-    if (emailSuccess && guest.email) successMethods.push(`Email to ${guest.email}`);
+    if (smsSuccess) {
+      if (useActualPhones && guest.phone) {
+        successMethods.push(`SMS to ${guest.phone}`);
+      } else {
+        successMethods.push(`SMS to test numbers`);
+      }
+    }
     
     return {
       success: true,

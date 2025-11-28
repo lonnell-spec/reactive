@@ -211,13 +211,44 @@ export async function generateUniqueCodeWord(
 }
 
 /**
+ * Gets the canonical base URL for the application
+ * Handles production, preview, and local environments
+ * Private helper function
+ * 
+ * @returns The base URL for the application
+ */
+function getCanonicalUrl(): string {
+  const VERCEL_ENV = process.env.VERCEL_ENV;
+  const VERCEL_PROJECT_PRODUCTION_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const VERCEL_URL = process.env.VERCEL_URL;
+
+  // --- PRODUCTION CHECK ---
+  // If VERCEL_PROJECT_PRODUCTION_URL is set (it should be in Production environment)
+  if (VERCEL_ENV === 'production' && VERCEL_PROJECT_PRODUCTION_URL) {
+    // Return the production URL (e.g., https://yourdomain.com)
+    return `https://${VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+
+  // --- PREVIEW/DEVELOPMENT CHECK ---
+  // If VERCEL_URL is available (it is in Preview and Development deployments)
+  // VERCEL_URL renders the temporary vercel.app URL without https://
+  if (VERCEL_URL) {
+    return `https://${VERCEL_URL}`;
+  }
+
+  // --- LOCAL FALLBACK ---
+  return 'http://localhost:3000';
+}
+
+/**
  * Generates a URL for the pass view page
  * 
  * @param passId The pass ID to generate a URL for
  * @returns Promise<string> The URL for the pass view page
  */
 export async function generatePassViewUrl(passId: string) {
-  return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/pass/view/${passId}`;
+  const baseUrl = getCanonicalUrl();
+  return `${baseUrl}/pass/view/${passId}`;
 }
 
 /**
@@ -227,7 +258,8 @@ export async function generatePassViewUrl(passId: string) {
  * @returns Promise<string> The URL for the admin page deep link to a guest detail
  */
 export async function generateDeepLinkUrl(external_guest_id: string) {
-  return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/admin/${external_guest_id}`;
+  const baseUrl = getCanonicalUrl();
+  return `${baseUrl}/admin/${external_guest_id}`;
 }
 
 /**
@@ -237,7 +269,8 @@ export async function generateDeepLinkUrl(external_guest_id: string) {
  * @returns Promise<string> The URL for the admin page deep link to a guest verification
  */
 export async function generatePassVerificationUrl(passId: string) {
-  return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/admin/verification/${passId}`;
+  const baseUrl = getCanonicalUrl();
+  return `${baseUrl}/admin/verification/${passId}`;
 }
 
 /**
@@ -247,7 +280,8 @@ export async function generatePassVerificationUrl(passId: string) {
  * @returns Promise<string> The URL for the automation workflow approval action
  */
 export async function generateApprovalUrl(textCallbackReferenceId: number) {
-  return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/automation/workflow?action=approve&textrefid=${textCallbackReferenceId.toString()}`;
+  const baseUrl = getCanonicalUrl();
+  return `${baseUrl}/automation/workflow?action=approve&textrefid=${textCallbackReferenceId}`;
 }
 
 /**
@@ -257,5 +291,6 @@ export async function generateApprovalUrl(textCallbackReferenceId: number) {
  * @returns Promise<string> The URL for the automation workflow denial action
  */
 export async function generateDenialUrl(textCallbackReferenceId: number) {
-  return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/automation/workflow?action=deny&textrefid=${textCallbackReferenceId.toString()}`;
+  const baseUrl = getCanonicalUrl();
+  return `${baseUrl}/automation/workflow?action=deny&textrefid=${textCallbackReferenceId}`;
 }

@@ -12,7 +12,7 @@ import { markPassAsUsed, searchGuestByCodeWord, searchGuestByPhone, PassVerifica
 import { AdminMenu } from '@/components/AdminMenu'
 import Image from 'next/image'
 
-export default function AdminVerificationPage() {
+export default function AdminManualVerificationPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [passId, setPassId] = useState('')
@@ -31,7 +31,7 @@ export default function AdminVerificationPage() {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
-        router.push('/admin?redirect=' + encodeURIComponent('/admin/verification'))
+        router.push('/admin?redirect=' + encodeURIComponent('/admin/manual-verification'))
         return
       }
       
@@ -139,7 +139,7 @@ export default function AdminVerificationPage() {
 
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
         {/* Admin Menu */}
-        <AdminMenu currentPath="/admin/verification" />
+        <AdminMenu currentPath="/admin/manual-verification" />
 
         {/* Search Section */}
         <Card className="border-2 border-gray-200 shadow-md mb-8">
@@ -239,3 +239,4 @@ export default function AdminVerificationPage() {
     </div>
   )
 }
+

@@ -235,18 +235,18 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                       </div>
                     </div>
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
                         <Label htmlFor="login-password" className="text-xl">Password</Label>
                         {authConfig.emailConfirmationConfigured ? (
                           <button
                             type="button"
                             onClick={() => setActiveTab('forgot-password')}
-                            className="text-sm text-red-600 hover:underline"
+                            className="text-xs sm:text-sm text-red-600 hover:underline self-start sm:self-auto"
                           >
                             Forgot Password?
                           </button>
                         ) : (
-                          <span className="text-sm text-gray-400 cursor-not-allowed">
+                          <span className="text-xs sm:text-sm text-gray-400 cursor-not-allowed self-start sm:self-auto">
                             Password Reset Disabled
                           </span>
                         )}

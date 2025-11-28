@@ -26,7 +26,7 @@ export function AdminMenu({ currentPath }: AdminMenuProps) {
       title: 'Manual Verification',
       description: 'Search and verify guests manually',
       icon: Search,
-      path: '/admin/verification',
+      path: '/admin/manual-verification',
       color: 'bg-green-600 hover:bg-green-700'
     },
     {
@@ -98,9 +98,9 @@ export function AdminMenu({ currentPath }: AdminMenuProps) {
           
           {/* Menu Content */}
           <div className="absolute top-16 right-4 left-4 bg-white rounded-lg shadow-xl border-2 border-gray-200 max-w-sm mx-auto">
-            <div className="p-4">
-              <h2 className="text-lg font-semibold mb-4 flex items-center">
-                <Shield className="w-5 h-5 mr-2" />
+            <div className="p-3">
+              <h2 className="text-base font-semibold mb-3 flex items-center">
+                <Shield className="w-4 h-4 mr-2 flex-shrink-0" />
                 Admin Menu
               </h2>
               <div className="space-y-2">
@@ -112,16 +112,16 @@ export function AdminMenu({ currentPath }: AdminMenuProps) {
                       key={item.path}
                       onClick={() => handleNavigate(item.path)}
                       variant="outline"
-                      className={`w-full h-auto p-4 flex items-start text-left border-gray-200 ${
+                      className={`w-full h-auto p-3 flex items-start text-left border-gray-200 ${
                         isActive 
                           ? 'bg-red-50 border-red-600 text-red-700' 
                           : 'hover:bg-red-50 hover:border-red-600 hover:text-red-700'
                       }`}
                     >
-                      <Icon className="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <div className="font-semibold">{item.title}</div>
-                        <div className="text-sm opacity-75 mt-1">{item.description}</div>
+                      <Icon className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-sm truncate">{item.title}</div>
+                        <div className="text-xs opacity-75 mt-0.5 line-clamp-2">{item.description}</div>
                       </div>
                     </Button>
                   )

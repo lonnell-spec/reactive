@@ -6,6 +6,10 @@ import { FormFieldError } from '../FormFieldError';
 import { GuestFormData } from '@/lib/types';
 import { Calendar } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
+import { MultiSelectCommaSeparatedDropdown } from '../../ui/multi-select-comma-separated-dropdown';
+
+// Available gathering time options
+const GATHERING_TIMES = ['08:00 AM', '10:30 AM', '01:00 PM'];
 
 /**
  * Visit Details section of the guest form
@@ -35,30 +39,20 @@ export const VisitDetailsSection = () => {
         <div className="space-y-3">
           <Label htmlFor="gatheringTime" className="text-xl">Gathering Time *</Label>
           <div className="relative" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="relative" style={{ width: '100%' }}>
-              <Controller
-                name="gatheringTime"
-                control={control}
-                render={({ field }) => (
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger 
-                      className={`border-2 ${errors.gatheringTime ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4 text-xl`}
-                    >
-                      <SelectValue placeholder="Select time" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="08:00 AM" className="text-xl">08:00 AM</SelectItem>
-                      <SelectItem value="10:30 AM" className="text-xl">10:30 AM</SelectItem>
-                      <SelectItem value="01:00 PM" className="text-xl">01:00 PM</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.gatheringTime && <FormFieldError message={errors.gatheringTime.message || 'Gathering time is required'} />}
-            </div>
+            <Controller
+              name="gatheringTime"
+              control={control}
+              render={({ field }) => (
+                <MultiSelectCommaSeparatedDropdown
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  options={GATHERING_TIMES}
+                  error={!!errors.gatheringTime}
+                  placeholder="Select time(s)"
+                />
+              )}
+            />
+            {errors.gatheringTime && <FormFieldError message={errors.gatheringTime.message || 'Gathering time is required'} />}
           </div>
         </div>
       </div>

@@ -41,11 +41,12 @@ Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
 Visit Date: ${formattedDate}
 Time: ${guest.gathering_time}
 Guests: ${guest.total_guests}
-Guest details at: ${deepLinkUrl}
 
 Approve: ${approvalUrl}
 
 Deny: ${denialUrl}
+
+Guest details at: ${deepLinkUrl}
 `.trim();
 }
 
@@ -77,11 +78,12 @@ Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
 Visit Date: ${formattedDate}
 Time: ${guest.gathering_time}
 Guests: ${guest.total_guests}
-Guest details at: ${deepLinkUrl}
 
 Approve: ${approvalUrl}
 
 Deny: ${denialUrl}
+
+Guest details at: ${deepLinkUrl}
 `.trim();
 }
 

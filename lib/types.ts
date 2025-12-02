@@ -43,7 +43,11 @@ export const childInfoSchema = z.object({
       const now = new Date();
       return date <= now;
     }, { message: 'Date of birth cannot be in the future' }),
-  allergies: z.string().optional(),
+  allergies: z.string()
+    .min(1, 'Allergies information is required')
+    .refine(val => val.trim().length > 0, {
+      message: 'Allergies information cannot be empty'
+    }),
   photo: imageFileValidation
 });
 

@@ -204,12 +204,19 @@ export const ChildrenInformationSection = () => {
                   </p>
                 </div>
                 <div className="space-y-3">
-                  <Label className="text-xl">Allergies</Label>
-                  <Textarea
-                    placeholder="List any allergies or special dietary needs..."
-                    {...register(`childrenInfo.${index}.allergies`)}
-                    className="border-2 border-gray-300 focus:border-red-600 min-h-[100px]"
-                  />
+                  <Label className="text-xl">Allergies *</Label>
+                  <div className="relative" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <Textarea
+                        placeholder="List any allergies or special dietary needs..."
+                        {...register(`childrenInfo.${index}.allergies`)}
+                        className={`border-2 ${errors.childrenInfo?.[index]?.allergies ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} min-h-[100px]`}
+                      />
+                      {errors.childrenInfo?.[index]?.allergies && (
+                        <FormFieldError message={errors.childrenInfo[index].allergies?.message || 'Allergies information is required'} />
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>

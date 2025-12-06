@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
-  title: 'Reactive Church Guest Registration',
-  description: 'Guest registration system for churches',
+  title: 'PAM Special Guest Registration',
+  description: 'PAM Special Guest Registration',
 }
 
 export default function RootLayout({

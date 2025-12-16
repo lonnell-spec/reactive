@@ -9,8 +9,8 @@ import {
   mapChildInfoToRecord,
   createGuestProfileUpdateRecord,
   createChildPhotoUpdateRecord
-} from '../database-utils';
-import { GuestFormData, GuestStatus } from '../types';
+} from './database-utils';
+import { GuestFormData, GuestStatus } from './types';
 
 describe('Data Transformation', () => {
   describe('mapFormDataToGuestRecord', () => {
@@ -223,3 +223,4 @@ describe('Data Transformation', () => {
     });
   });
 });
+

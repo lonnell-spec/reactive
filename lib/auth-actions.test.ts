@@ -7,11 +7,12 @@ import {
   validateRegistrationCode, 
   validateUserCreationInputs,
   createUserCreationData
-} from '../auth-actions';
+} from './auth-actions';
+import { vi } from 'vitest';
 
 // Mock the role-utils module
-jest.mock('../role-utils', () => ({
-  getRoleRegistrationCode: jest.fn((type: string) => {
+vi.mock('./role-utils', () => ({
+  getRoleRegistrationCode: vi.fn((type: string) => {
     if (type === 'admin') return Promise.resolve('TEST_ADMIN_CODE');
     if (type === 'general') return Promise.resolve('TEST_GENERAL_CODE');
     return Promise.resolve(null);
@@ -19,8 +20,8 @@ jest.mock('../role-utils', () => ({
 }));
 
 // Mock the string-utils module
-jest.mock('../string-utils', () => ({
-  isValidEmailFormat: jest.fn((email: string) => {
+vi.mock('./string-utils', () => ({
+  isValidEmailFormat: vi.fn((email: string) => {
     return Promise.resolve(email.includes('@') && email.includes('.'));
   })
 }));
@@ -253,3 +254,4 @@ describe('Business Logic', () => {
     });
   });
 });
+

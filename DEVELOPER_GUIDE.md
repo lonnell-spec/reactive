@@ -124,7 +124,7 @@ supabase/storage.sql
 - **Authentication:** Supabase Auth
 - **File Storage:** Supabase Storage
 - **Forms:** React Hook Form with Zod validation
-- **Testing:** Jest with TypeScript support
+- **Testing:** Vitest with TypeScript support
 
 ### Key Directories
 ```
@@ -211,8 +211,10 @@ NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS=true
 ## 🧪 Testing
 
 ### Running Tests
+
+**Unit Tests:**
 ```bash
-# Run all tests
+# Run all unit tests
 npm test
 
 # Watch mode for development
@@ -222,11 +224,30 @@ npm run test:watch
 npm run test:coverage
 ```
 
-### Test Structure
+**Integration Tests:**
+```bash
+# Run integration tests against remote Supabase
+npm run test:integration
+```
+
+### Test Organization
+Tests are co-located with the code they test:
+- `lib/auth-actions.test.ts` - Tests `lib/auth-actions.ts`
+- `lib/database-utils.test.ts` - Tests `lib/database-utils.ts`
+- `lib/guest-form-actions.integration.test.ts` - Integration tests
+
+### Unit Test Structure
 - **Form Validation** - Input validation and parsing
 - **Data Transformation** - Database mapping functions
 - **Business Logic** - Core workflows and validation
 - **Utility Functions** - Pure helper functions
+
+### Integration Test Structure
+- **Guest Submission** - End-to-end submission with storage and DB
+- **Pass Verification** - Full verification workflows
+- Uses unique IDs (`vitest-<timestamp>-<uuid>`) for safety
+- Automatic cleanup after each test
+- Notifications disabled by default
 
 ### Writing Tests
 Tests use dependency injection for testability:
@@ -241,6 +262,19 @@ export async function myFunction(
   // Function logic
 }
 ```
+
+### Integration Test Requirements
+Set these environment variables in `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+Integration tests automatically:
+- Generate unique IDs for all created data
+- Clean up guests, children, and storage files
+- Disable SMS/email notifications
+- Use test phone numbers for code paths
 
 ## 🚀 Deployment
 

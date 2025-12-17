@@ -42,10 +42,13 @@ A modern, secure guest registration system built for churches using Next.js, Sup
 
 ## 🧪 Testing
 
-The system includes comprehensive unit tests for critical business logic:
+The system includes comprehensive tests for critical business logic:
+
+### Unit Tests (Vitest)
+Fast, isolated tests co-located with the code they test:
 
 ```bash
-# Run all tests
+# Run all unit tests
 npm test
 
 # Run tests in watch mode
@@ -56,10 +59,30 @@ npm run test:coverage
 ```
 
 **Test Coverage:**
-- Form validation and data parsing (16 tests)
-- Data transformation utilities (18 tests)  
-- Business logic workflows (17 tests)
-- Utility functions (18 tests)
+- Form validation and data parsing
+- Data transformation utilities
+- Business logic workflows
+- Utility functions
+
+### Integration Tests (Optional)
+End-to-end tests against a remote Supabase instance:
+
+```bash
+# Run integration tests (requires env vars)
+npm run test:integration
+```
+
+**Requirements for integration tests:**
+- Set `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`
+- Tests use unique IDs and automatically clean up created data
+- Safe to run against shared development Supabase instances
+- Notifications are automatically disabled during tests
+
+**Integration test coverage:**
+- Guest submission happy path
+- Guest submission rollback on failure
+- Pass verification (valid, expired, used)
+- Search by code word and phone number
 
 ## 📱 Mobile Support
 
@@ -76,7 +99,7 @@ npm run test:coverage
 - **Authentication:** Supabase Auth
 - **Storage:** Supabase Storage
 - **SMS/Email:** TextMagic API
-- **Testing:** Jest with TypeScript support
+- **Testing:** Vitest with TypeScript support
 - **Deployment:** Vercel-ready
 
 ## 📚 Documentation
@@ -84,7 +107,6 @@ npm run test:coverage
 - **[User Guide](USER_GUIDE.md)** - Complete guide for church staff
 - **[Developer Guide](DEVELOPER_GUIDE.md)** - Technical setup and development
 - **[API Documentation](API_DOCS.md)** - Server actions and endpoints
-- **[Testing Guide](lib/__tests__/README.md)** - Unit testing information
 
 ## 📄 License
 

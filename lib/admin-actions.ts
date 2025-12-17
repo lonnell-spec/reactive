@@ -96,13 +96,11 @@ export async function preApproveGuest(
   userEmail: string,
   dependencies: {
     getSupabaseClient?: typeof getSupabaseServiceClient;
-    guestPreApprovalNotificationFn?: typeof notifyGuestOfPreApproval;
     approverNotificationFn?: typeof sendApproverNotification;
   } = {}
 ) {
   const {
     getSupabaseClient = getSupabaseServiceClient,
-    guestPreApprovalNotificationFn = notifyGuestOfPreApproval,
     approverNotificationFn = sendApproverNotification
   } = dependencies;
 
@@ -133,8 +131,6 @@ export async function preApproveGuest(
     
     // Send notifications
     await approverNotificationFn(guestId);
-    // TODO: Remove this at end of project
-    // await guestPreApprovalNotificationFn(guestId); 
     
     return {
       success: true,
@@ -163,12 +159,10 @@ export async function denyPreApproval(
   denialMessage: string = "Your pre-approval request has been denied.",
   dependencies: {
     getSupabaseClient?: typeof getSupabaseServiceClient;
-    notificationFn?: typeof notifyGuestOfDenial;
   } = {}
 ) {
   const {
     getSupabaseClient = getSupabaseServiceClient,
-    notificationFn = notifyGuestOfDenial
   } = dependencies;
 
   if (!guestId) {
@@ -195,10 +189,6 @@ export async function denyPreApproval(
     if (updateError) {
       throw new Error(`Database error: ${updateError.message}`);
     }
-    
-    // TODO: Remove this at end of project
-    // Send SMS notification to the guest
-    // await notificationFn(guestId);
     
     return {
       success: true,
@@ -276,12 +266,10 @@ export async function denyGuest(
   denialMessage: string = "Your guest registration has been denied.",
   dependencies: {
     getSupabaseClient?: typeof getSupabaseServiceClient;
-    notificationFn?: typeof notifyGuestOfDenial;
   } = {}
 ) {
   const {
     getSupabaseClient = getSupabaseServiceClient,
-    notificationFn = notifyGuestOfDenial
   } = dependencies;
 
   if (!guestId) {
@@ -308,10 +296,6 @@ export async function denyGuest(
     if (updateError) {
       throw new Error(`Database error: ${updateError.message}`);
     }
-    
-    // TODO: Remove this at end of project
-    // Send SMS notification to the guest
-    // await notificationFn(guestId);
     
     return {
       success: true,

@@ -8,7 +8,7 @@ import {
   safeTrim, 
   isValidEmailFormat, 
   isValidPhoneFormat 
-} from '../string-utils';
+} from './string-utils';
 
 describe('Utility Functions', () => {
   describe('isEmptyString', () => {
@@ -140,3 +140,5 @@ describe('Utility Functions', () => {
     });
   });
 });
+
+

@@ -2,7 +2,7 @@
 
 import { getSupabaseServiceClient } from './supabase-client'
 import { generateQRCode, generateUniqueCodeWord, generatePassId, generatePassViewUrl, generatePassVerificationUrl } from './guest-credentials'
-import { notifyGuestOfPreApproval, notifyGuestOfApproval, notifyGuestOfDenial, sendApproverNotification } from './notifications'
+import { notifyGuestOfApproval, sendApproverNotification, sendApproverNotificationOfDenial } from './notifications'
 import { GuestStatus } from './types'
 /**
  * Server action to approve a guest and generate secret credentials
@@ -159,10 +159,12 @@ export async function denyPreApproval(
   denialMessage: string = "Your pre-approval request has been denied.",
   dependencies: {
     getSupabaseClient?: typeof getSupabaseServiceClient;
+    denialApproverNotificationFn?: typeof sendApproverNotificationOfDenial;
   } = {}
 ) {
   const {
     getSupabaseClient = getSupabaseServiceClient,
+    denialApproverNotificationFn = sendApproverNotificationOfDenial
   } = dependencies;
 
   if (!guestId) {
@@ -189,6 +191,9 @@ export async function denyPreApproval(
     if (updateError) {
       throw new Error(`Database error: ${updateError.message}`);
     }
+    
+    // Send notification to approvers
+    await denialApproverNotificationFn(guestId);
     
     return {
       success: true,

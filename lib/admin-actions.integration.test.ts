@@ -7,7 +7,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { preApproveGuest, approveGuest, denyPreApproval, denyGuest } from './admin-actions';
 import { getSupabaseServiceClient } from './supabase-client';
 import { GuestStatus } from './types';
-import { sendApproverNotification, notifyGuestOfApproval } from './notifications';
+import { sendApproverNotification, notifyGuestOfApproval, sendApproverNotificationOfDenial } from './notifications';
 import {
   makeRunId,
   createGuestForWorkflow,
@@ -184,8 +184,12 @@ describe('Admin Actions - Integration Tests', () => {
       });
       createdGuestIds.push(guestId);
 
+      // Spy on the actual sendApproverNotificationOfDenial function to verify it's called
+      const sendApproverNotificationOfDenialSpy = vi.fn(sendApproverNotificationOfDenial);
+
       // Deny pre-approval
       const result = await denyPreApproval(guestId, userEmail, 'Test denial', {
+        denialApproverNotificationFn: sendApproverNotificationOfDenialSpy
       });
 
       // Assert the action succeeded
@@ -205,6 +209,10 @@ describe('Admin Actions - Integration Tests', () => {
       expect(guest!.status).toBe(GuestStatus.PRE_APPROVAL_DENIED);
       expect(guest!.pre_approval_denied_by).toBe(userEmail);
       expect(guest!.pre_approval_denied_at).toBeDefined();
+
+      // Verify the denial notification was called
+      expect(sendApproverNotificationOfDenialSpy).toHaveBeenCalledWith(guestId);
+      expect(sendApproverNotificationOfDenialSpy).toHaveBeenCalledTimes(1);
     }, 60000);
 
     it('should deny final approval and update status to DENIED', async () => {

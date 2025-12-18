@@ -2,6 +2,7 @@
 
 import { getSupabaseServiceClient } from './supabase-client'
 import { preApproveGuest, denyPreApproval, approveGuest, denyGuest } from './admin-actions'
+import { sendApproverNotification, notifyGuestOfApproval, sendApproverNotificationOfDenial } from './notifications'
 import { GuestStatus } from './types'
 
 interface WorkflowResult {
@@ -16,11 +17,17 @@ interface WorkflowResult {
  * 
  * @param action The action to perform ('approve' or 'deny')
  * @param textRefId The text callback reference ID
+ * @param dependencies Optional dependencies for testing
  * @returns Result of the action
  */
 export async function processWorkflowAction(
   action: 'approve' | 'deny',
-  textRefId: string
+  textRefId: string,
+  dependencies: {
+    approverNotificationFn?: typeof sendApproverNotification;
+    approvalNotificationFn?: typeof notifyGuestOfApproval;
+    denialApproverNotificationFn?: typeof sendApproverNotificationOfDenial;
+  } = {}
 ): Promise<WorkflowResult> {
   try {
     // Validate action
@@ -71,15 +78,21 @@ export async function processWorkflowAction(
     if (action === 'approve') {
       if (guest.status === GuestStatus.PENDING_PRE_APPROVAL) {
         // Pre-approve the guest
-        result = await preApproveGuest(guest.id, systemUser)
+        result = await preApproveGuest(guest.id, systemUser, {
+          approverNotificationFn: dependencies.approverNotificationFn
+        })
       } else if (guest.status === GuestStatus.PENDING) {
         // Final approval
-        result = await approveGuest(guest.id, systemUser)
+        result = await approveGuest(guest.id, systemUser, {
+          notificationFn: dependencies.approvalNotificationFn
+        })
       }
     } else if (action === 'deny') {
       if (guest.status === GuestStatus.PENDING_PRE_APPROVAL) {
         // Deny pre-approval
-        result = await denyPreApproval(guest.id, systemUser)
+        result = await denyPreApproval(guest.id, systemUser, undefined, {
+          denialApproverNotificationFn: dependencies.denialApproverNotificationFn
+        })
       } else if (guest.status === GuestStatus.PENDING) {
         // Final denial
         result = await denyGuest(guest.id, systemUser)

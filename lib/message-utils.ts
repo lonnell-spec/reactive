@@ -11,6 +11,7 @@ interface GuestInfo {
   visit_date: string;
   gathering_time: string;
   total_guests: number;
+  status: GuestStatus;
 }
 
 /**
@@ -73,15 +74,47 @@ export async function formatApproverMessage(
   const formattedDate = await formatDateString(guest.visit_date);
 
   return `
-New guest registration requires approval:
+New guest registration:
 Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
 Visit Date: ${formattedDate}
 Time: ${guest.gathering_time}
 Guests: ${guest.total_guests}
+PAM: (${getGuestStatusLabelForApproverNotification(guest.status)})
+Guest details at: ${deepLinkUrl}
+
+Please give the final acceptance by clicking approve below
 
 Approve: ${approvalUrl}
+`.trim();
+}
 
-Deny: ${denialUrl}
+/**
+ * Formats an approver denial notification message
+ * Pure function for testability
+ * 
+ * @param guest Guest information
+ * @param deepLinkUrl URL for deep link to a guest detail
+ * @returns Formatted message string
+ */
+export async function formatApproverDenialMessage(
+  guest: GuestInfo,
+  deepLinkUrl: string
+): Promise<string> {
+  if (!guest || !deepLinkUrl) {
+    throw new Error('Guest information and deep link URL are required');
+  }
+
+  const formattedDate = await formatDateString(guest.visit_date);
+
+  return `
+Guest registration denied:
+Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
+Visit Date: ${formattedDate}
+Time: ${guest.gathering_time}
+Guests: ${guest.total_guests}
+PAM: (${getGuestStatusLabelForApproverNotification(guest.status)})
+
+Guest was denied. See guest information at link below.
 
 Guest details at: ${deepLinkUrl}
 `.trim();
@@ -169,4 +202,26 @@ export async function formatPreApprovalMessage(
 
   We look forward to seeing you on ${formattedDate} at ${guest.gathering_time}.
   `;
+}
+
+/**
+ * Returns a user-friendly string for a GuestStatus enum value.
+ * @param status - GuestStatus enum value
+ * @returns User-friendly status string
+ */
+import { GuestStatus } from './types';
+
+function getGuestStatusLabelForApproverNotification(status: GuestStatus): string {
+  switch (status) {
+    case GuestStatus.PENDING_PRE_APPROVAL:
+      return 'Pending Pre-Approval';
+    case GuestStatus.PENDING:
+    case GuestStatus.APPROVED:
+      return 'Approved';
+    case GuestStatus.PRE_APPROVAL_DENIED:
+    case GuestStatus.DENIED:
+      return 'Denied';
+    default:
+      return 'Unknown Status';
+  }
 }

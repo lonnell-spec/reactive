@@ -60,7 +60,6 @@ export default function ProfilePage() {
         const config = await getProfileConfig()
         setProfileConfig(config)
       } catch (error) {
-        console.error('Failed to load profile config:', error)
         // Use defaults if config loading fails
       }
       

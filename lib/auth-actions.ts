@@ -100,6 +100,7 @@ export async function createUserWithRole(
       userId: data.user?.id
     };
   } catch (err) {
+    console.error('[createUserAccount] Failed to create account:', err);
     return {
       success: false,
       message: err instanceof Error ? err.message : 'Failed to create account'

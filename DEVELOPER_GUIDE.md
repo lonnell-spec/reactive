@@ -8,7 +8,7 @@ This guide covers technical setup, configuration, and development information fo
 - Node.js 18+ 
 - npm or yarn
 - Supabase account
-- TextMagic account (for SMS/email)
+- TextMagic account (for SMS)
 
 ### Installation
 
@@ -61,16 +61,13 @@ TEXTMAGIC_URL=https://rest.textmagic.com
 
 # Notification control flags
 SEND_TEXT_MESSAGES=true
-SEND_EMAILS=true
 NOTIFICATION_NOTIFY_GUESTS=true
 
 # Live vs Test mode
 NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS=false
-NOTIFICATION_USE_ACTUAL_EMAIL_ADDRESSES=false
 
 # Test recipients (comma-separated)
 NOTIFICATION_TEST_PHONE_NUMBERS=+1234567890,+0987654321
-NOTIFICATION_TEST_EMAIL_ADDRESSES=test1@example.com,test2@example.com
 ```
 
 ### Supabase Auth Configuration
@@ -192,11 +189,11 @@ guest-photos/
 
 ## 🔔 Notification System
 
-### SMS/Email Flow
+### SMS Flow
 1. Guest submits registration
 2. System determines recipients based on environment flags
-3. Sends notifications via TextMagic API
-4. Recipients can approve/deny via admin dashboard
+3. Sends SMS notifications via TextMagic API
+4. Recipients can approve/deny via links in SMS or via admin dashboard
 
 ### Test vs Live Mode
 ```typescript
@@ -247,7 +244,7 @@ Tests are co-located with the code they test:
 - **Pass Verification** - Full verification workflows
 - Uses unique IDs (`vitest-<timestamp>-<uuid>`) for safety
 - Automatic cleanup after each test
-- Notifications disabled by default
+- SMS notifications disabled by default
 
 ### Writing Tests
 Tests use dependency injection for testability:
@@ -273,7 +270,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 Integration tests automatically:
 - Generate unique IDs for all created data
 - Clean up guests, children, and storage files
-- Disable SMS/email notifications
+- Disable outbound notifications
 - Use test phone numbers for code paths
 
 ## 🚀 Deployment
@@ -372,13 +369,13 @@ export default function MyComponent() {
 1. **Form Submission** → Client validation → Server action
 2. **Data Processing** → Parse FormData → Validate with Zod
 3. **Database Insert** → Guest record → Upload photos → Insert children
-4. **Notification** → Send SMS/email to pre-approvers
+4. **Notification** → Send SMS to pre-approvers
 5. **Rollback** → On any failure, clean up database and storage
 
 ### Approval Flow
-1. **Pre-Approval** → Update status → Notify approvers
+1. **Pre-Approval** → Update status → Notify approvers via SMS
 2. **Final Approval** → Generate QR code → Create pass credentials
-3. **Guest Notification** → Send approval confirmation
+3. **Guest Notification** → Send approval confirmation via SMS
 
 ## 🛠️ Customization
 
@@ -397,7 +394,6 @@ export default function MyComponent() {
 Control features via environment variables:
 ```env
 SEND_TEXT_MESSAGES=false  # Disable SMS
-SEND_EMAILS=false         # Disable email
 NOTIFICATION_NOTIFY_GUESTS=false  # Disable guest notifications
 ```
 

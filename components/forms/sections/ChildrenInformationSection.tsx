@@ -170,7 +170,6 @@ export const ChildrenInformationSection = () => {
                                 }));
                               }, 3000);
                             } catch (error) {
-                              console.error('Compression failed:', error);
                               setCompressionStates(prev => ({
                                 ...prev,
                                 [index]: { 

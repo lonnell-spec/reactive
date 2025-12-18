@@ -78,7 +78,6 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         const config = await getAuthConfig()
         setAuthConfig(config)
       } catch (error) {
-        console.error('Failed to load auth config:', error)
         // Use defaults if config loading fails
       }
     }

@@ -144,7 +144,7 @@ export async function sendPreApproverNotification(guestId: string) {
     const phoneNumbers = await getPhoneNumbersByRole('pre_approver', 'admin');
     
     if (phoneNumbers.length === 0) {
-      console.log('No phone numbers found for pre-approver notification');
+      console.warn(`[sendPreApproverNotification] No phone numbers found for pre-approver notification, guestId: ${guestId}`);
       return false;
     }
     
@@ -166,7 +166,7 @@ export async function sendPreApproverNotification(guestId: string) {
     // Return true if SMS was sent successfully
     return smsSuccess;
   } catch (error) {
-    console.log('Error in sendPreApproverNotification:', error);
+    console.error(`[sendPreApproverNotification] Failed to send pre-approver notification for guest ${guestId}:`, error);
     return false;
   }
 }
@@ -192,6 +192,7 @@ export async function sendApproverNotification(guestId: string) {
     const phoneNumbers = await getPhoneNumbersByRole('admin');
     
     if (phoneNumbers.length === 0) {
+      console.warn(`[sendApproverNotification] No phone numbers found for admin role, guestId: ${guestId}`);
       return false;
     }
 
@@ -212,6 +213,7 @@ export async function sendApproverNotification(guestId: string) {
     // Return true if SMS was sent successfully
     return smsSuccess;
   } catch (error) {
+    console.error(`[sendApproverNotification] Failed to send approver notification for guest ${guestId}:`, error);
     return false;
   }
 }
@@ -237,6 +239,7 @@ export async function sendApproverNotificationOfDenial(guestId: string) {
     const phoneNumbers = await getPhoneNumbersByRole('admin');
     
     if (phoneNumbers.length === 0) {
+      console.warn(`[sendApproverNotificationOfDenial] No phone numbers found for admin role, guestId: ${guestId}`);
       return false;
     }
 
@@ -255,6 +258,7 @@ export async function sendApproverNotificationOfDenial(guestId: string) {
     // Return true if SMS was sent successfully
     return smsSuccess;
   } catch (error) {
+    console.error(`[sendApproverNotificationOfDenial] Failed to send denial notification for guest ${guestId}:`, error);
     return false;
   }
 }
@@ -348,6 +352,7 @@ export async function notifyGuestOfPreApproval(guestId: string) {
       message: `Pre-approval notification sent via ${successMethods.join(' and ')}`
     };
   } catch (error) {
+    console.error(`[notifyGuestOfPreApproval] Failed to send pre-approval notification for guest ${guestId}:`, error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to send pre-approval notification'
@@ -444,6 +449,7 @@ export async function notifyGuestOfApproval(guestId: string) {
       message: `Approval notification sent via ${successMethods.join(' and ')}`
     };
   } catch (error) {
+    console.error(`[notifyGuestOfApproval] Failed to send approval notification for guest ${guestId}:`, error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to send approval notification'
@@ -543,6 +549,7 @@ export async function notifyGuestOfDenial(guestId: string) {
       message: `Denial notification sent via ${successMethods.join(' and ')}`
     };
   } catch (error) {
+    console.error(`[notifyGuestOfDenial] Failed to send denial notification for guest ${guestId}:`, error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to send denial notification'

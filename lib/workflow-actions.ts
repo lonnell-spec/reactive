@@ -32,6 +32,7 @@ export async function processWorkflowAction(
   try {
     // Validate action
     if (action !== 'approve' && action !== 'deny') {
+      console.warn(`[processWorkflowAction] Invalid action received: ${action}, textRefId: ${textRefId}`);
       return {
         success: false,
         error: 'Invalid action. Must be "approve" or "deny"'
@@ -41,6 +42,7 @@ export async function processWorkflowAction(
     // Parse textRefId as integer
     const referenceId = parseInt(textRefId)
     if (isNaN(referenceId)) {
+      console.warn(`[processWorkflowAction] Invalid reference ID format: ${textRefId}`);
       return {
         success: false,
         error: 'Invalid reference ID format'
@@ -56,6 +58,7 @@ export async function processWorkflowAction(
       .single()
 
     if (guestError || !guest) {
+      console.warn(`[processWorkflowAction] Guest not found for referenceId: ${referenceId}`);
       return {
         success: false,
         error: 'Guest not found'
@@ -65,6 +68,7 @@ export async function processWorkflowAction(
     // Check if guest is in a valid status
     const validStatuses = [GuestStatus.PENDING_PRE_APPROVAL, GuestStatus.PENDING]
     if (!validStatuses.includes(guest.status)) {
+      console.warn(`[processWorkflowAction] Guest ${guest.id} not in valid status. Current status: ${guest.status}, action: ${action}`);
       return {
         success: false,
         error: `Guest is not in a valid status for this action. Current status: ${guest.status}`
@@ -100,6 +104,7 @@ export async function processWorkflowAction(
     }
 
     if (!result || !result.success) {
+      console.warn(`[processWorkflowAction] Action failed for guest ${guest.id}, action: ${action}, result: ${result?.message}`);
       return {
         success: false,
         error: result?.message || 'Failed to process action'

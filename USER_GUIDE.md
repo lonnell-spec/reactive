@@ -31,10 +31,10 @@ This guide is for church staff who will be using the guest registration system t
 - Access all system features
 
 **👑 Admin Users Can:**
-- Receive SMS/email notifications for Approval
+- Receive SMS notifications for Approval
 
 **🔍 Pre-Approver Users Can:**
-- Receive SMS/email notifications for Pre-Approval
+- Receive SMS notifications for Pre-Approval
 
 **‼️Important! You must assign roles properly to get correct notifications to roles:**
 - If you have Admin role you'll get Approver Notifications
@@ -80,9 +80,11 @@ On mobile devices, use the hamburger menu (☰) to access:
 
 When a new guest registers:
 
-1. **You'll receive a notification** via SMS/email
-2. **Review the guest details** in the dashboard
-3. **Make a decision:**
+1. **You'll receive a notification** via SMS
+2. **You can take action directly from the SMS:**
+   - Click the **Approve** link in the text message to pre-approve
+   - Click the **Deny** link in the text message to reject
+3. **Or review the guest details** in the dashboard:
    - **Pre-Approve** - Guest looks good, send to final approval
    - **Deny** - Reject the registration with a reason
 
@@ -90,8 +92,14 @@ When a new guest registers:
 
 For pre-approved guests:
 
-1. **Review pre-approved guests** (blue status)
-2. **Generate pass credentials:**
+1. **You'll receive a notification** when a guest has been pre-approved
+2. **You can see the pre-approval decision:**
+   - If pre-approved: Guest shows **Pending** (blue) status
+   - If denied by pre-approver: Guest shows **Pre-Approval Denied** (red) status
+3. **For pre-approved guests, you must still give final approval:**
+   - Click the **Approve** link in the SMS notification for quick approval
+   - Or log in to the dashboard to review guest details and approve
+4. **Generate pass credentials:**
    - **Approve** - Creates QR code and access credentials
    - **Deny** - Reject with reason
 
@@ -108,7 +116,7 @@ For pre-approved guests:
 Use this feature to verify guest passes on-site:
 
 1. **Go to Manual Verification** (from menu or dashboard button)
-2. **Enter the pass ID** from the guest's QR code or email
+2. **Enter the pass ID** from the guest's QR code
 3. **System shows:**
    - Guest photo and information
    - Pass validity status
@@ -143,19 +151,19 @@ Use this feature to verify guest passes on-site:
 
 *Note: Some fields may be grayed out based on your church's security settings.*
 
-## 📧 Notifications
-
-### SMS Notifications
+## 📧 SMS Notifications
 
 Pre-approvers receive SMS messages when:
 - New guests submit registrations
-- Messages include guest name, visit date, and approval link
-- Can also respond Yes/No
+- Messages include guest name, visit date, and approval/denial links
+- Click the links to approve or deny directly from your phone
 
 Admins/Approvers receive SMS messages when:
 - New guests have been pre-approved
 - Messages include guest name, visit date, and approval link
-- Can also respond Yes/No
+- Click the link to approve directly from your phone
+
+**Note:** Admins also receive a notification when a guest is denied by a pre-approver. This is for informational purposes only—no action is required from admins for denied guests.
 
 ## 📱 Mobile Tips
 
@@ -229,8 +237,8 @@ Admins/Approvers receive SMS messages when:
 
 ### Not Receiving Notifications
 - Check your phone number is correct in your profile
-- Verify SMS/email settings with church administrator
-- Check spam folder for email notifications
+- Verify SMS settings with church administrator
+- Ensure you have the correct role assigned (Admin or Pre-Approver)
 
 ### Guest Photos Not Loading
 - Check your internet connection

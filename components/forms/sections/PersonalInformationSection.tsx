@@ -120,7 +120,6 @@ export const PersonalInformationSection = () => {
                       // Clear status after 3 seconds
                       setTimeout(() => setCompressionStatus(''), 3000);
                     } catch (error) {
-                      console.error('Compression failed:', error);
                       setCompressionStatus(`Error: ${error instanceof Error ? error.message : 'Compression failed'}`);
                       onChange(null);
                       // Clear input

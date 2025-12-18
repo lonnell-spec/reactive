@@ -133,7 +133,7 @@ export async function sendTextMagicSMS({ phone, message, from, referenceId }: Te
       };
     }
   } catch (error) {
-    console.error('Error sending SMS:', error);
+    console.error('[sendTextMagicSMS] Error sending SMS:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -204,7 +204,7 @@ export async function sendTextMagicEmail({ email, message, subject, from }: Text
       };
     }
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('[sendTextMagicEmail] Error sending email:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

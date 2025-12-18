@@ -16,7 +16,7 @@ A modern, secure guest registration system built for churches using Next.js, Sup
 - **Guest Registration Form** - Mobile-friendly form with photo uploads for guests and children
 - **Two-Step Approval Workflow** - Pre-approval → Final approval process
 - **Role-Based Administration** - Admin and pre-approver roles with different permissions
-- **SMS & Email Notifications** - Automated notifications via TextMagic integration
+- **SMS Notifications** - Automated notifications via TextMagic integration
 - **QR Code Generation** - Secure passes for approved guests
 - **Mobile Responsive** - Works seamlessly on phones, tablets, and desktop
 - **Image Compression** - Automatic client-side photo compression for faster uploads
@@ -98,7 +98,7 @@ npm run test:integration
 - **Database:** Supabase (PostgreSQL)
 - **Authentication:** Supabase Auth
 - **Storage:** Supabase Storage
-- **SMS/Email:** TextMagic API
+- **SMS:** TextMagic API
 - **Testing:** Vitest with TypeScript support
 - **Deployment:** Vercel-ready
 
@@ -106,11 +106,8 @@ npm run test:integration
 
 - **[User Guide](USER_GUIDE.md)** - Complete guide for church staff
 - **[Developer Guide](DEVELOPER_GUIDE.md)** - Technical setup and development
+- **[Date & Time Configuration](TIMEZONE_CONFIGURATION.md)** - Date handling and timezone information
 - **[API Documentation](API_DOCS.md)** - Server actions and endpoints
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 

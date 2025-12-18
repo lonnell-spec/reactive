@@ -130,6 +130,7 @@ async function insertChildrenWithPhotos(
       const { data: childData, error: childError } = await insertChildFn(supabaseService, childRecord);
 
       if (childError) {
+        console.error(`[insertChildrenWithPhotos] Failed to insert child record for guest ${guest.id}:`, childError);
         throw new Error(`Failed to insert child record for ${child.name}`);
       }
 
@@ -153,6 +154,7 @@ async function insertChildrenWithPhotos(
         const { error: updateError } = await updateChildFn(supabaseService, updateRecord, childData.id as string);
 
         if (updateError) {
+          console.error(`[insertChildrenWithPhotos] Failed to update child photo path for guest ${guest.id}:`, updateError);
           throw new Error(`Failed to update child ${child.name} with photo path`);
         }
       }
@@ -171,6 +173,7 @@ async function updateGuestWithProfilePicturePath(supabaseService: Awaited<Return
     .eq('id', guest.id as string);
 
   if (profileUpdateError) {
+    console.error(`[updateGuestWithProfilePicturePath] Failed to update guest ${guest.id} with profile picture path:`, profileUpdateError);
     throw new Error('Failed to update guest with profile picture path');
   }
 }
@@ -190,6 +193,7 @@ async function uploadProfilePicture(supabaseService: Awaited<ReturnType<typeof g
     });
 
   if (profileUploadError) {
+    console.error(`[uploadProfilePicture] Failed to upload profile picture for guest ${guest.id}:`, profileUploadError);
     throw new Error('Failed to upload profile picture');
   }
   return filePath;

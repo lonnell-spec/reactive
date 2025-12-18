@@ -20,6 +20,7 @@ export async function getProfilePicUrl(profilePath: string): Promise<string> {
     
     return data.signedUrl
   } catch (error) {
+    console.error(`[getProfilePicUrl] Failed to get profile picture URL for path ${profilePath}:`, error);
     return ''
   }
 }
@@ -42,6 +43,7 @@ export async function getChildPhotoUrl(photoPath: string): Promise<string> {
     
     return data.signedUrl
   } catch (error) {
+    console.error(`[getChildPhotoUrl] Failed to get child photo URL for path ${photoPath}:`, error);
     return ''
   }
 }

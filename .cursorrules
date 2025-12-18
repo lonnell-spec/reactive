@@ -1,0 +1,88 @@
+# Cursor Rules for next-service-dispatch-core
+
+# Project Context
+This guide is for church staff who will be using the guest registration system to manage visitors and approve registrations.
+
+# General Guidelines
+- Always use best practices and conventions
+- Write clean, maintainable, and well-documented code
+- Documentation should primarily be in md files and not in the code itself. Only document in code if it would be unclear to a developer what is happening.
+- Follow consistent code formatting and style
+- Always build classes and methods to be unit testable. Inject in dependencies, and give reasonable defaults.
+
+# Software and Packages to use to build this project
+- Next.js version 16. Latest stable.
+- Use latest stable version of TypeScript for type safety
+- Use latest stable version of shadcn/ui
+- Supabase will be backend
+- Deployment will be Vercel
+- Vitest for testing
+- Playwright for E2E tests (if neccesssary)
+
+# Code Style
+- Use meaningful variable and function names
+- Keep functions focused and single-purpose
+- Add comments for complex logic
+- Prefer composition over inheritance
+
+# Specific Package Instructions
+
+## shadcn/ui
+- 
+
+# Project Architecture & File Structure
+
+This project follows a **Feature-Based Architecture** using Next.js 16 (App Router). 
+Strictly adhere to the following directory rules when creating or modifying files.
+
+## 1. Directory Roles
+
+### `app/` (Routing Layer)
+* **Role:** Strictly for routing and layout.
+* **Rules:**
+    * Keep `page.tsx` files lightweight. They should primarily import and render feature components.
+    * **NO** complex business logic or database calls directly in pages.
+
+### `src/components/` (Shared UI)
+* **Role:** Reusable UI elements used across multiple features.
+* **`src/components/ui/`**: Low-level atoms (Chakra UI wrappers, buttons, inputs).
+* **`src/components/layout/`**: Global layout blocks (Sidebar, Header).
+
+---
+
+## 2. Testing Strategy
+
+We use a split testing strategy. **Always colocate unit/integration tests.**
+- Exclude all testing code from production bundles
+- When coding a feature build a unit or unit tests with it. Analyse if it meets complexity to need a unit test.
+
+### Unit Tests (Vitest)
+* These should be selective. (Helpers, util functions, complex algorithms) Only ~ 10% of all tests
+* **Location:** Co-located with the component.
+* **Pattern:** `ComponentName.tsx` -> `ComponentName.test.tsx`
+* **Scope:** Test complex UI interactions and rendering logic.
+
+### Service Integration Tests (Vitest)
+~ 70% of all tests
+* **Location:** Co-located with the service file.
+* **Pattern:** `feature.service.ts` -> `feature.service.test.ts`
+* **Scope:** Test business logic and database interactions. **This is preferred over testing Server Actions directly.**
+
+### E2E Tests (Playwright)
+* ~ 20% of all tests
+* **Location:** `tests/e2e/` (Root level).
+* **Scope:** Critical user flows only (Auth, "Money Paths").
+
+---
+
+## 3. Data Flow & The Service Pattern
+
+Follow this flow for data mutations:
+1.  **UI Component** calls a **Server Action**.
+2.  **Server Action** (`actions.ts`) validates input/auth and calls the **Database**.
+
+## Next.js File Organization
+- Follow this pattern, but the actual details may differ
+
+### Rules
+* Types returned by functions should be in files co-located with the files that hold the function

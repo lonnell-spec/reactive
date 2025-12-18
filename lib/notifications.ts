@@ -2,7 +2,7 @@
 
 import { sendTextMagicSMS, sendTextMagicEmail } from './textmagic';
 import { GuestStatus } from './types';
-import { formatApprovalMessage, formatApproverMessage, formatDenialMessage, formatPreApprovalMessage, formatPreApproverMessage } from './message-utils';
+import { formatApprovalMessage, formatApproverMessage, formatApproverDenialMessage, formatDenialMessage, formatPreApprovalMessage, formatPreApproverMessage } from './message-utils';
 import { getSupabaseServiceClient } from './supabase-client';
 import { generateDeepLinkUrl, generatePassViewUrl, generateApprovalUrl, generateDenialUrl } from './guest-credentials';
 
@@ -80,80 +80,6 @@ async function getPhoneNumbersByRole(role: string, fallbackRole: string | undefi
   return phoneNumbers;
 }
 
-/**
- * Retrieves email addresses for users with a specific role
- * Private function for internal use only
- * 
- * @param role The user role to filter by (e.g., 'pre_approver', 'admin')
- * @param fallbackRole Optional fallback role to try if primary role has no emails
- * @returns Array of email addresses
- */
-async function getEmailAddressesByRole(role: string, fallbackRole: string | undefined = undefined): Promise<string[]> {
-  let emailAddresses: string[] = [];
-  
-  const useActualEmailAddresses = process.env.NOTIFICATION_USE_ACTUAL_EMAIL_ADDRESSES === 'true';
-  
-  if (useActualEmailAddresses) {
-    // Get email addresses from authorized users with the specified role
-    const supabaseService = await getSupabaseServiceClient();
-    const { data: users, error: usersError } = await supabaseService.auth.admin.listUsers();
-    
-    if (usersError) {
-      throw new Error(`Failed to get users: ${usersError.message}`);
-    }
-    
-    // Filter users with the specified role and extract email addresses
-    emailAddresses = users.users
-      .filter(user => {
-        // Check both array-based roles and legacy single role
-        const appRoles = user.app_metadata?.roles || []
-        const userRoles = user.user_metadata?.roles || []
-        const legacyAppRole = user.app_metadata?.role
-        const legacyUserRole = user.user_metadata?.role
-        
-        return (
-          (Array.isArray(appRoles) && appRoles.includes(role)) ||
-          (Array.isArray(userRoles) && userRoles.includes(role)) ||
-          legacyAppRole === role ||
-          legacyUserRole === role
-        )
-      })
-      .map(user => user.email)
-      .filter((email): email is string => email !== undefined && email !== null && email.trim().length > 0);
-
-    // If no email addresses found and fallback role is provided, try fallback role
-    if (emailAddresses.length === 0 && fallbackRole) {
-      emailAddresses = users.users
-        .filter(user => {
-          // Check both array-based roles and legacy single role for fallback
-          const appRoles = user.app_metadata?.roles || []
-          const userRoles = user.user_metadata?.roles || []
-          const legacyAppRole = user.app_metadata?.role
-          const legacyUserRole = user.user_metadata?.role
-          
-          return (
-            (Array.isArray(appRoles) && appRoles.includes(fallbackRole)) ||
-            (Array.isArray(userRoles) && userRoles.includes(fallbackRole)) ||
-            legacyAppRole === fallbackRole ||
-            legacyUserRole === fallbackRole
-          )
-        })
-        .map(user => user.email)
-        .filter((email): email is string => email !== undefined && email !== null && email.trim().length > 0);
-    }
-  } else {
-    // Use test email addresses from environment variable
-    const testEmails = process.env.NOTIFICATION_TEST_EMAIL_ADDRESSES;
-    if (testEmails) {
-      emailAddresses = testEmails
-        .split(',')
-        .map(email => email.trim())
-        .filter(email => email.length > 0);
-    }
-  }
-  
-  return emailAddresses;
-}
 
 /**
  * Sends SMS messages to multiple phone numbers
@@ -198,48 +124,6 @@ async function sendSMSToMultipleNumbers(
 }
 
 /**
- * Sends email messages to multiple email addresses
- * Private function for internal use only
- * 
- * @param emailAddresses Array of email addresses to send to
- * @param message The message to send
- * @param subject The email subject
- * @returns Object with success status and count of successful sends
- */
-async function sendEmailToMultipleAddresses(
-  emailAddresses: string[], 
-  message: string,
-  subject?: string
-): Promise<{ success: boolean; successCount: number; totalCount: number }> {
-  let successCount = 0;
-  const totalCount = emailAddresses.length;
-  
-  for (const email of emailAddresses) {
-    try {
-      const { success, error } = await sendTextMagicEmail({
-        email: email,
-        message: message,
-        subject: subject,
-      });
-      
-      if (success) {
-        successCount++;
-      } else {
-        console.log(`Failed to send email to ${email}: ${error}`);
-      }
-    } catch (error) {
-      console.log(`Error sending email to ${email}:`, error);
-    }
-  }
-  
-  return {
-    success: successCount > 0,
-    successCount,
-    totalCount
-  };
-}
-
-/**
  * Sends a notification to pre-approvers when a new guest registration is submitted
  */
 export async function sendPreApproverNotification(guestId: string) {
@@ -258,10 +142,9 @@ export async function sendPreApproverNotification(guestId: string) {
     
     // Get phone numbers and email addresses for pre-approvers using the extracted functions
     const phoneNumbers = await getPhoneNumbersByRole('pre_approver', 'admin');
-    const emailAddresses = await getEmailAddressesByRole('pre_approver', 'admin');
     
-    if (phoneNumbers.length === 0 && emailAddresses.length === 0) {
-      console.log('No phone numbers or email addresses found for pre-approver notification');
+    if (phoneNumbers.length === 0) {
+      console.warn(`[sendPreApproverNotification] No phone numbers found for pre-approver notification, guestId: ${guestId}`);
       return false;
     }
     
@@ -279,21 +162,11 @@ export async function sendPreApproverNotification(guestId: string) {
       const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
       smsSuccess = smsResult.success;
     }
-
-    // TODO: Remove this at end of project
-    // if (emailAddresses.length > 0) {
-    //   const emailResult = await sendEmailToMultipleAddresses(
-    //     emailAddresses, 
-    //     message, 
-    //     'New Guest Registration - Pre-Approval Required'
-    //   );
-    //   emailSuccess = emailResult.success;
-    // }
     
-    // Return true if either SMS or email was sent successfully
-    return smsSuccess || emailSuccess;
+    // Return true if SMS was sent successfully
+    return smsSuccess;
   } catch (error) {
-    console.log('Error in sendPreApproverNotification:', error);
+    console.error(`[sendPreApproverNotification] Failed to send pre-approver notification for guest ${guestId}:`, error);
     return false;
   }
 }
@@ -317,9 +190,9 @@ export async function sendApproverNotification(guestId: string) {
     
     // Get phone numbers and email addresses for admins using the extracted functions
     const phoneNumbers = await getPhoneNumbersByRole('admin');
-    const emailAddresses = await getEmailAddressesByRole('admin');
     
-    if (phoneNumbers.length === 0 && emailAddresses.length === 0) {
+    if (phoneNumbers.length === 0) {
+      console.warn(`[sendApproverNotification] No phone numbers found for admin role, guestId: ${guestId}`);
       return false;
     }
 
@@ -331,25 +204,61 @@ export async function sendApproverNotification(guestId: string) {
 
     // Send SMS and Email to all recipients using the extracted functions
     let smsSuccess = false;
-    let emailSuccess = false;
 
     if (phoneNumbers.length > 0) {
       const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
       smsSuccess = smsResult.success;
     }
+    
+    // Return true if SMS was sent successfully
+    return smsSuccess;
+  } catch (error) {
+    console.error(`[sendApproverNotification] Failed to send approver notification for guest ${guestId}:`, error);
+    return false;
+  }
+}
 
-    if (emailAddresses.length > 0) {
-      const emailResult = await sendEmailToMultipleAddresses(
-        emailAddresses, 
-        message, 
-        'Guest Registration - Final Approval Required'
-      );
-      emailSuccess = emailResult.success;
+/**
+ * Sends a notification to approvers when a guest pre-approval is denied
+ */
+export async function sendApproverNotificationOfDenial(guestId: string) {
+  try {
+    const supabaseService = await getSupabaseServiceClient();
+    // Get the guest information from Supabase
+    const { data: guest, error: guestError } = await supabaseService
+      .from('guests')
+      .select('*')
+      .eq('id', guestId)
+      .single();
+    
+    if (guestError || !guest) {
+      throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
     }
     
-    // Return true if either SMS or email was sent successfully
-    return smsSuccess || emailSuccess;
+    // Get phone numbers for admins using the extracted functions
+    const phoneNumbers = await getPhoneNumbersByRole('admin');
+    
+    if (phoneNumbers.length === 0) {
+      console.warn(`[sendApproverNotificationOfDenial] No phone numbers found for admin role, guestId: ${guestId}`);
+      return false;
+    }
+
+    const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
+    // Format the message using pure utility function
+    const message = await formatApproverDenialMessage(guest, deepLinkUrl);
+
+    // Send SMS to all recipients using the extracted functions
+    let smsSuccess = false;
+
+    if (phoneNumbers.length > 0) {
+      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
+      smsSuccess = smsResult.success;
+    }
+    
+    // Return true if SMS was sent successfully
+    return smsSuccess;
   } catch (error) {
+    console.error(`[sendApproverNotificationOfDenial] Failed to send denial notification for guest ${guestId}:`, error);
     return false;
   }
 }
@@ -384,11 +293,9 @@ export async function notifyGuestOfPreApproval(guestId: string) {
     // Format the message
     const message = await formatPreApprovalMessage(guest);
 
-    // Send both SMS and Email notifications
+    // Send SMS notification
     let smsSuccess = false;
-    let emailSuccess = false;
     let smsError = '';
-    let emailError = '';
 
     const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS === 'true';
 
@@ -422,21 +329,8 @@ export async function notifyGuestOfPreApproval(guestId: string) {
       }
     }
 
-    // Send Email if email address exists
-    // if (guest.email) {
-    //   const { success, error } = await sendTextMagicEmail({
-    //     email: guest.email,
-    //     message: message,
-    //     subject: 'Guest Registration Pre-Approved',
-    //   });
-    //   emailSuccess = success;
-    //   if (!success) {
-    //     emailError = error || 'Unknown email error';
-    //   }
-    // }
-
-    // If both failed, throw an error
-    if (!smsSuccess && !emailSuccess) {
+    // If SMS failed, throw an error
+    if (!smsSuccess) {
       const errors = [];
       if (smsError) errors.push(`SMS: ${smsError}`);
       if (!guest.phone && useActualPhones) errors.push('No phone number available');
@@ -458,6 +352,7 @@ export async function notifyGuestOfPreApproval(guestId: string) {
       message: `Pre-approval notification sent via ${successMethods.join(' and ')}`
     };
   } catch (error) {
+    console.error(`[notifyGuestOfPreApproval] Failed to send pre-approval notification for guest ${guestId}:`, error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to send pre-approval notification'
@@ -495,11 +390,9 @@ export async function notifyGuestOfApproval(guestId: string) {
     // Format the message
     const message = await formatApprovalMessage(guest, passViewUrl);
 
-    // Send both SMS and Email notifications
+    // Send SMS notification
     let smsSuccess = false;
-    // let emailSuccess = false;
     let smsError = '';
-    let emailError = '';
 
     const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS?.toLowerCase() === 'true';
 
@@ -533,20 +426,7 @@ export async function notifyGuestOfApproval(guestId: string) {
       }
     }
 
-    // Send Email if email address exists
-    // if (guest.email) {
-    //   const { success, error } = await sendTextMagicEmail({
-    //     email: guest.email,
-    //     message: message,
-    //     subject: 'Guest Registration Approved - Your Pass is Ready!',
-    //   });
-    //   emailSuccess = success;
-    //   if (!success) {
-    //     emailError = error || 'Unknown email error';
-    //   }
-    // }
-
-    // If both failed, throw an error
+    // If SMS failed, throw an error
     if (!smsSuccess) {
       const errors = [];
       if (smsError) errors.push(`SMS: ${smsError}`);
@@ -569,6 +449,7 @@ export async function notifyGuestOfApproval(guestId: string) {
       message: `Approval notification sent via ${successMethods.join(' and ')}`
     };
   } catch (error) {
+    console.error(`[notifyGuestOfApproval] Failed to send approval notification for guest ${guestId}:`, error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to send approval notification'
@@ -609,11 +490,9 @@ export async function notifyGuestOfDenial(guestId: string) {
     // Format the message
     const message = await formatDenialMessage(guest, churchContactEmail);
     
-    // Send both SMS and Email notifications
+    // Send SMS notification
     let smsSuccess = false;
-    let emailSuccess = false;
     let smsError = '';
-    let emailError = '';
 
     const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS === 'true';
 
@@ -647,20 +526,7 @@ export async function notifyGuestOfDenial(guestId: string) {
       }
     }
 
-    // Send Email if email address exists
-    // if (guest.email) {
-    //   const { success, error } = await sendTextMagicEmail({
-    //     email: guest.email,
-    //     message: message,
-    //     subject: 'Guest Registration Update',
-    //   });
-    //   emailSuccess = success;
-    //   if (!success) {
-    //     emailError = error || 'Unknown email error';
-    //   }
-    // }
-
-    // If both failed, throw an error
+    // If SMS failed, throw an error
     if (!smsSuccess) {
       const errors = [];
       if (smsError) errors.push(`SMS: ${smsError}`);
@@ -683,6 +549,7 @@ export async function notifyGuestOfDenial(guestId: string) {
       message: `Denial notification sent via ${successMethods.join(' and ')}`
     };
   } catch (error) {
+    console.error(`[notifyGuestOfDenial] Failed to send denial notification for guest ${guestId}:`, error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to send denial notification'

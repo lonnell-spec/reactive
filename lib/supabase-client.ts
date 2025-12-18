@@ -24,6 +24,7 @@ function createSupabaseServiceClient() {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('[createSupabaseServiceClient] Missing Supabase service role credentials');
     throw new Error('Missing Supabase service role credentials');
   }
   

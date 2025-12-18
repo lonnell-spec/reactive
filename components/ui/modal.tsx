@@ -106,7 +106,6 @@ export function Modal({
     return createPortal(modalContent, modalRoot)
   } catch (error) {
     // Fallback to inline rendering if portal fails
-    console.warn('Modal portal failed, falling back to inline rendering:', error)
     return modalContent
   }
 }

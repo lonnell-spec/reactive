@@ -27,8 +27,8 @@ begin
   select decrypted_secret into supabase_url from vault.decrypted_secrets where name = 'supabase_url';
   select decrypted_secret into service_role_key from vault.decrypted_secrets where name = 'service_role_key';
 
-  -- Cutoff date is today's date
-  cutoff_date := (NOW() AT TIME ZONE 'America/Chicago')::date;
+  -- Cutoff date is 7 days ago
+  cutoff_date := ((NOW() AT TIME ZONE 'America/Chicago') - INTERVAL '7 days')::date;
   
   -- Process each old guest record
   for guest_record in

@@ -36,7 +36,6 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
   const [activeSubmission, setActiveSubmission] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [statusMsg, setStatusMsg] = useState('')
-  const [showCompleted, setShowCompleted] = useState(false)
   // Removed role-based state - all users have access to all functionality
   const [loadingSpecificGuest, setLoadingSpecificGuest] = useState(false)
   const [hasProcessedInitialGuest, setHasProcessedInitialGuest] = useState(false)
@@ -44,7 +43,7 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
   // Load submissions on mount
   useEffect(() => {
     loadSubmissions()
-  }, [showCompleted])
+  }, [])
 
   // Handle initial external guest ID after submissions are loaded
   useEffect(() => {
@@ -64,12 +63,8 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
       // Load pending guest submissions (pending_pre_approval and pending)
       await loadGuestSubmissions();
       
-      // Load completed submissions if showCompleted is true
-      if (showCompleted) {
-        await loadCompletedSubmissions();
-      } else {
-        setCompletedSubmissions([]);
-      }
+      // Always load completed submissions
+      await loadCompletedSubmissions();
     } catch (err) {
       setError('Failed to load submissions. Please try again.')
     } finally {
@@ -377,19 +372,6 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
           </div>
           
           <div className="flex items-center gap-4 mt-4 md:mt-0">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="showCompleted"
-                checked={showCompleted}
-                onChange={(e) => setShowCompleted(e.target.checked)}
-                className="mr-2 h-4 w-4"
-              />
-              <label htmlFor="showCompleted" className="text-sm">
-                Show Completed Requests
-              </label>
-            </div>
-            
             <div className="flex gap-2">
               <Button
                 onClick={loadSubmissions}
@@ -440,8 +422,8 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
                 />
               </div>
               
-              {/* Completed Submissions (if enabled) */}
-              {showCompleted && completedSubmissions.length > 0 && (
+              {/* Completed Submissions */}
+              {completedSubmissions.length > 0 && (
                 <GuestListing
                   title="Processed Guests (Approved/Denied)"
                   submissions={completedSubmissions}

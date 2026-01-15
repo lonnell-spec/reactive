@@ -45,3 +45,4 @@ _import/make/node_modules/
 _import/make/.next/
 _import/make/dist/
 _import/make/
+.env*.local

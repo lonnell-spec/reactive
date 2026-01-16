@@ -89,6 +89,37 @@ Approve: ${approvalUrl}
 }
 
 /**
+ * Formats an admin informational notification message (no action links)
+ * Pure function for testability
+ * 
+ * @param guest Guest information
+ * @param deepLinkUrl URL for deep link to a guest detail
+ * @returns Formatted message string
+ */
+export async function formatAdminInfoMessage(
+  guest: GuestInfo,
+  deepLinkUrl: string
+): Promise<string> {
+  if (!guest || !deepLinkUrl) {
+    throw new Error('Guest information and deep link URL are required');
+  }
+
+  const formattedDate = await formatDateString(guest.visit_date);
+
+  return `
+Guest registration approved:
+Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
+Visit Date: ${formattedDate}
+Time: ${guest.gathering_time}
+Guests: ${guest.total_guests}
+
+Guest has been approved and notified.
+
+View guest details: ${deepLinkUrl}
+`.trim();
+}
+
+/**
  * Formats an approver denial notification message
  * Pure function for testability
  * 
@@ -213,12 +244,10 @@ import { GuestStatus } from './types';
 
 function getGuestStatusLabelForApproverNotification(status: GuestStatus): string {
   switch (status) {
-    case GuestStatus.PENDING_PRE_APPROVAL:
-      return 'Pending Pre-Approval';
     case GuestStatus.PENDING:
+      return 'Pending Approval';
     case GuestStatus.APPROVED:
       return 'Approved';
-    case GuestStatus.PRE_APPROVAL_DENIED:
     case GuestStatus.DENIED:
       return 'Denied';
     default:

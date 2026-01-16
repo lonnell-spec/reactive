@@ -80,7 +80,7 @@ export async function submitGuestForm(
     return {
       success: true,
       submissionId: guest.external_guest_id,
-      message: 'Guest registration submitted successfully and pending pre-approval.'
+      message: 'Guest registration submitted successfully and pending approval.'
     };
 
   } catch (error) {

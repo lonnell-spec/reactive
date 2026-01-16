@@ -45,7 +45,7 @@ describe('Guest Form Submission - Integration Tests', () => {
     // Assert submission succeeded
     expect(result.success).toBe(true);
     expect(result.submissionId).toBeDefined();
-    expect(result.message).toContain('pending pre-approval');
+    expect(result.message).toContain('pending approval');
     
     // Verify the guest was created in the database
     const supabaseService = await getSupabaseServiceClient();
@@ -57,7 +57,7 @@ describe('Guest Form Submission - Integration Tests', () => {
     
     expect(error).toBeNull();
     expect(guest).toBeDefined();
-    expect(guest.status).toBe(GuestStatus.PENDING_PRE_APPROVAL);
+    expect(guest.status).toBe(GuestStatus.PENDING);
     expect(guest.first_name).toBe('TestGuest');
     expect(guest.last_name).toContain('vitest-');
     expect(guest.email).toContain('@vitest.example.com');

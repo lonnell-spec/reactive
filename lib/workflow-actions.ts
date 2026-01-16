@@ -1,8 +1,8 @@
 'use server'
 
 import { getSupabaseServiceClient } from './supabase-client'
-import { preApproveGuest, denyPreApproval, approveGuest, denyGuest } from './admin-actions'
-import { sendApproverNotification, notifyGuestOfApproval, sendApproverNotificationOfDenial } from './notifications'
+import { approveGuest, denyGuest } from './admin-actions'
+import { notifyGuestOfApproval, sendAdminInfoNotification } from './notifications'
 import { GuestStatus } from './types'
 
 interface WorkflowResult {
@@ -24,9 +24,8 @@ export async function processWorkflowAction(
   action: 'approve' | 'deny',
   textRefId: string,
   dependencies: {
-    approverNotificationFn?: typeof sendApproverNotification;
     approvalNotificationFn?: typeof notifyGuestOfApproval;
-    denialApproverNotificationFn?: typeof sendApproverNotificationOfDenial;
+    adminInfoNotificationFn?: typeof sendAdminInfoNotification;
   } = {}
 ): Promise<WorkflowResult> {
   try {
@@ -65,10 +64,9 @@ export async function processWorkflowAction(
       }
     }
 
-    // Check if guest is in a valid status
-    const validStatuses = [GuestStatus.PENDING_PRE_APPROVAL, GuestStatus.PENDING]
-    if (!validStatuses.includes(guest.status)) {
-      console.warn(`[processWorkflowAction] Guest ${guest.id} not in valid status. Current status: ${guest.status}, action: ${action}`);
+    // Check if guest is in PENDING status
+    if (guest.status !== GuestStatus.PENDING) {
+      console.warn(`[processWorkflowAction] Guest ${guest.id} not in PENDING status. Current status: ${guest.status}, action: ${action}`);
       return {
         success: false,
         error: `Guest is not in a valid status for this action. Current status: ${guest.status}`
@@ -78,29 +76,18 @@ export async function processWorkflowAction(
     const systemUser = 'automation-workflow@system'
     let result
 
-    // Process the action based on guest status
+    // Process the action
     if (action === 'approve') {
-      if (guest.status === GuestStatus.PENDING_PRE_APPROVAL) {
-        // Pre-approve the guest
-        result = await preApproveGuest(guest.id, systemUser, {
-          approverNotificationFn: dependencies.approverNotificationFn
-        })
-      } else if (guest.status === GuestStatus.PENDING) {
-        // Final approval
-        result = await approveGuest(guest.id, systemUser, {
-          notificationFn: dependencies.approvalNotificationFn
-        })
-      }
+      // Approve the guest - generates pass and sends notifications
+      result = await approveGuest(guest.id, systemUser, {
+        notificationFn: dependencies.approvalNotificationFn,
+        adminInfoNotificationFn: dependencies.adminInfoNotificationFn
+      })
     } else if (action === 'deny') {
-      if (guest.status === GuestStatus.PENDING_PRE_APPROVAL) {
-        // Deny pre-approval
-        result = await denyPreApproval(guest.id, systemUser, undefined, {
-          denialApproverNotificationFn: dependencies.denialApproverNotificationFn
-        })
-      } else if (guest.status === GuestStatus.PENDING) {
-        // Final denial
-        result = await denyGuest(guest.id, systemUser)
-      }
+      // Deny the guest
+      result = await denyGuest(guest.id, systemUser, {
+        adminInfoNotificationFn: dependencies.adminInfoNotificationFn
+      })
     }
 
     if (!result || !result.success) {

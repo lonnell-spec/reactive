@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { LogOut, RefreshCw } from 'lucide-react'
 import Image from 'next/image'
 import { GuestStatus } from '@/lib/types'
-import { preApproveGuest, denyPreApproval, approveGuest, denyGuest } from '@/lib/admin-actions'
+import { approveGuest, denyGuest } from '@/lib/admin-actions'
 // Removed role-based filtering - all users see all data
 import { formatGuestDataList, Submission } from '@/lib/data-formatting-utils'
 import { GuestDetailsModal } from './GuestDetailsModal'
@@ -125,14 +125,14 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
     try {
       const supabaseAuthClient = createClientComponentClient()
       // Query Supabase for active guest submissions (pending_pre_approval and pending)
-      // Filter out completed statuses (approved, denied, pre_approval_denied)
+      // Filter out completed statuses (approved, denied)
       const { data, error: queryError } = await supabaseAuthClient
         .from('guests')
         .select(`
           *,
           guest_children (*)
         `)
-        .in('status', [GuestStatus.PENDING_PRE_APPROVAL, GuestStatus.PENDING])
+        .in('status', [GuestStatus.PENDING])
         .order('created_at', { ascending: false });
 
       if (queryError) {
@@ -161,48 +161,6 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
     }
   };
 
-  const handlePreApprove = async (id: string) => {
-    setActionLoading(id)
-    try {
-      const result = await preApproveGuest(id, user.email)
-      
-      if (!result.success) {
-        throw new Error(result.message)
-      }
-      
-      // Close the active submission view
-      setActiveSubmission(null)
-      
-      // Reload submissions to get updated data
-      loadSubmissions()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to pre-approve guest')
-    } finally {
-      setActionLoading(null)
-    }
-  }
-  
-  const handlePreApprovalDeny = async (id: string) => {
-    setActionLoading(id)
-    try {
-      const result = await denyPreApproval(id, user.email, "Your pre-approval request has been denied.")
-      
-      if (!result.success) {
-        throw new Error(result.message)
-      }
-      
-      // Close the active submission view
-      setActiveSubmission(null)
-      
-      // Reload submissions to get updated data
-      loadSubmissions()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to deny pre-approval for guest')
-    } finally {
-      setActionLoading(null)
-    }
-  }
-  
   // Load completed submissions
   const loadCompletedSubmissions = async () => {
     try {
@@ -214,7 +172,7 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
           *,
           guest_children (*)
         `)
-        .in('status', [GuestStatus.APPROVED, GuestStatus.DENIED, GuestStatus.PRE_APPROVAL_DENIED])
+        .in('status', [GuestStatus.APPROVED, GuestStatus.DENIED])
         .order('updated_at', { ascending: false });
 
       if (queryError) {
@@ -260,7 +218,7 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
   const handleDeny = async (id: string) => {
     setActionLoading(id)
     try {
-      const result = await denyGuest(id, user.email, "Your registration has been denied by an administrator.")
+      const result = await denyGuest(id, user.email)
       
       if (!result.success) {
         throw new Error(result.message)
@@ -444,8 +402,6 @@ export function AdminDashboard({ user, onLogout, initialExternalGuestId }: Admin
         // Removed userRoles - all users have access to all actions
         actionLoading={actionLoading}
         onClose={() => setActiveSubmission(null)}
-        onPreApprove={handlePreApprove}
-        onPreApprovalDeny={handlePreApprovalDeny}
         onApprove={handleApprove}
         onDeny={handleDeny}
         getRelativeTime={getRelativeTime}

@@ -12,7 +12,7 @@ A modern, secure guest registration system built for churches using Next.js, Sup
 
 ## 📋 System Overview
 
-### Core Features
+### Core Features 
 - **Guest Registration Form** - Mobile-friendly form with photo uploads for guests and children
 - **Single-Step Approval Workflow** - Pre-approvers approve/deny with one decision
 - **Role-Based Administration** - Admin and pre-approver roles with different permissions

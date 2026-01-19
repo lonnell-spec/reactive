@@ -2,7 +2,7 @@
 
 import { sendTextMagicSMS, sendTextMagicEmail } from './textmagic';
 import { GuestStatus } from './types';
-import { formatApprovalMessage, formatApproverMessage, formatApproverDenialMessage, formatDenialMessage, formatPreApprovalMessage, formatPreApproverMessage, formatAdminInfoMessage } from './message-utils';
+import { formatApprovalMessage, formatPreApproverMessage, formatAdminApprovalMessage, formatAdminDenialMessage } from './message-utils';
 import { getSupabaseServiceClient } from './supabase-client';
 import { generateDeepLinkUrl, generatePassViewUrl, generateApprovalUrl, generateDenialUrl } from './guest-credentials';
 
@@ -176,7 +176,7 @@ export async function sendPreApproverNotification(guestId: string) {
  * Sends an informational notification to admins when a guest is approved
  * This is for informational purposes only - no action links included
  */
-export async function sendAdminInfoNotification(guestId: string) {
+export async function sendAdminApprovalNotification(guestId: string) {
   try {
     const supabaseService = await getSupabaseServiceClient();
     // Get the guest information from Supabase
@@ -194,13 +194,13 @@ export async function sendAdminInfoNotification(guestId: string) {
     const phoneNumbers = await getPhoneNumbersByRole('admin');
     
     if (phoneNumbers.length === 0) {
-      console.warn(`[sendAdminInfoNotification] No phone numbers found for admin role, guestId: ${guestId}`);
+      console.warn(`[sendAdminApprovalNotification] No phone numbers found for admin role, guestId: ${guestId}`);
       return false;
     }
 
     const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
     // Format the message using pure utility function (no action links)
-    const message = await formatAdminInfoMessage(guest, deepLinkUrl);
+    const message = await formatAdminApprovalMessage(guest, deepLinkUrl);
 
     // Send SMS to all recipients using the extracted functions
     let smsSuccess = false;
@@ -213,7 +213,53 @@ export async function sendAdminInfoNotification(guestId: string) {
     // Return true if SMS was sent successfully
     return smsSuccess;
   } catch (error) {
-    console.error(`[sendAdminInfoNotification] Failed to send admin info notification for guest ${guestId}:`, error);
+    console.error(`[sendAdminApprovalNotification] Failed to send admin approval notification for guest ${guestId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Sends an informational notification to admins when a guest is denied
+ * This is for informational purposes only - no action links included
+ */
+export async function sendAdminDenialNotification(guestId: string) {
+  try {
+    const supabaseService = await getSupabaseServiceClient();
+    // Get the guest information from Supabase
+    const { data: guest, error: guestError } = await supabaseService
+      .from('guests')
+      .select('*')
+      .eq('id', guestId)
+      .single();
+    
+    if (guestError || !guest) {
+      throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
+    }
+    
+    // Get phone numbers for admins using the extracted functions
+    const phoneNumbers = await getPhoneNumbersByRole('admin');
+    
+    if (phoneNumbers.length === 0) {
+      console.warn(`[sendAdminDenialNotification] No phone numbers found for admin role, guestId: ${guestId}`);
+      return false;
+    }
+
+    const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
+    // Format the message using pure utility function (no action links)
+    const message = await formatAdminDenialMessage(guest, deepLinkUrl);
+
+    // Send SMS to all recipients using the extracted functions
+    let smsSuccess = false;
+
+    if (phoneNumbers.length > 0) {
+      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
+      smsSuccess = smsResult.success;
+    }
+    
+    // Return true if SMS was sent successfully
+    return smsSuccess;
+  } catch (error) {
+    console.error(`[sendAdminDenialNotification] Failed to send admin denial notification for guest ${guestId}:`, error);
     return false;
   }
 }

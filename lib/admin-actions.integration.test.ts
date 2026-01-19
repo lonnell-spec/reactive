@@ -7,7 +7,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { approveGuest, denyGuest } from './admin-actions';
 import { getSupabaseServiceClient } from './supabase-client';
 import { GuestStatus } from './types';
-import { notifyGuestOfApproval, sendAdminInfoNotification } from './notifications';
+import { notifyGuestOfApproval, sendAdminApprovalNotification, sendAdminDenialNotification } from './notifications';
 import {
   makeRunId,
   createGuestForWorkflow,
@@ -39,12 +39,12 @@ describe('Admin Actions - Integration Tests', () => {
 
       // Spy on the notification functions to verify they're called
       const notifyGuestOfApprovalSpy = vi.fn(notifyGuestOfApproval);
-      const sendAdminInfoNotificationSpy = vi.fn(sendAdminInfoNotification);
+      const sendAdminApprovalNotificationSpy = vi.fn(sendAdminApprovalNotification);
 
       // Approve the guest
       const result = await approveGuest(guestId, userEmail, {
         notificationFn: notifyGuestOfApprovalSpy,
-        adminInfoNotificationFn: sendAdminInfoNotificationSpy
+        adminApprovalNotificationFn: sendAdminApprovalNotificationSpy
       });
 
       // Assert the action succeeded
@@ -74,51 +74,123 @@ describe('Admin Actions - Integration Tests', () => {
       // Verify notifications were called
       expect(notifyGuestOfApprovalSpy).toHaveBeenCalledWith(guestId);
       expect(notifyGuestOfApprovalSpy).toHaveBeenCalledTimes(1);
-      expect(sendAdminInfoNotificationSpy).toHaveBeenCalledWith(guestId);
-      expect(sendAdminInfoNotificationSpy).toHaveBeenCalledTimes(1);
+      expect(sendAdminApprovalNotificationSpy).toHaveBeenCalledWith(guestId);
+      expect(sendAdminApprovalNotificationSpy).toHaveBeenCalledTimes(1);
     }, 60000);
   });
 
   describe('Denial flows', () => {
-    it('should deny a guest and update status to DENIED', async () => {
+    it('should deny a guest and update status to DENIED without notification when env var is false', async () => {
       const runId = makeRunId();
       const userEmail = 'test-admin@vitest.com';
 
-      // Create a guest in PENDING status
-      const { guestId } = await createGuestForWorkflow({
-        runId,
-        status: GuestStatus.PENDING
-      });
-      createdGuestIds.push(guestId);
+      // Save original env var
+      const originalEnvVar = process.env.NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL;
+      
+      // Explicitly set env var to false for this test
+      process.env.NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL = 'false';
 
-      // Spy on the admin info notification function to verify it's called
-      const sendAdminInfoNotificationSpy = vi.fn(sendAdminInfoNotification);
+      try {
+        // Create a guest in PENDING status
+        const { guestId } = await createGuestForWorkflow({
+          runId,
+          status: GuestStatus.PENDING
+        });
+        createdGuestIds.push(guestId);
 
-      // Deny guest
-      const result = await denyGuest(guestId, userEmail, {
-        adminInfoNotificationFn: sendAdminInfoNotificationSpy
-      });
+        // Spy on the admin denial notification function to verify it's NOT called
+        const sendAdminDenialNotificationSpy = vi.fn(sendAdminDenialNotification);
 
-      // Assert the action succeeded
-      expect(result.success).toBe(true);
-      expect(result.message).toContain('denied successfully');
+        // Deny guest
+        const result = await denyGuest(guestId, userEmail, {
+          adminDenialNotificationFn: sendAdminDenialNotificationSpy
+        });
 
-      // Verify the database was updated
-      const supabase = await getSupabaseServiceClient();
-      const { data: guest, error } = await supabase
-        .from('guests')
-        .select('status, denied_by, denied_at')
-        .eq('id', guestId)
-        .single();
+        // Assert the action succeeded
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('denied successfully');
 
-      expect(error).toBeNull();
-      expect(guest).toBeDefined();
-      expect(guest!.status).toBe(GuestStatus.DENIED);
-      expect(guest!.denied_by).toBe(userEmail);
-      expect(guest!.denied_at).toBeDefined();
+        // Verify the database was updated
+        const supabase = await getSupabaseServiceClient();
+        const { data: guest, error } = await supabase
+          .from('guests')
+          .select('status, denied_by, denied_at')
+          .eq('id', guestId)
+          .single();
 
-      // Verify the admin info notification was NOT called (env var not set)
-      expect(sendAdminInfoNotificationSpy).not.toHaveBeenCalled();
+        expect(error).toBeNull();
+        expect(guest).toBeDefined();
+        expect(guest!.status).toBe(GuestStatus.DENIED);
+        expect(guest!.denied_by).toBe(userEmail);
+        expect(guest!.denied_at).toBeDefined();
+
+        // Verify the admin denial notification was NOT called (env var is false)
+        expect(sendAdminDenialNotificationSpy).not.toHaveBeenCalled();
+      } finally {
+        // Restore original env var
+        if (originalEnvVar === undefined) {
+          delete process.env.NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL;
+        } else {
+          process.env.NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL = originalEnvVar;
+        }
+      }
+    }, 60000);
+
+    it('should deny a guest and send admin notification when env var is true', async () => {
+      const runId = makeRunId();
+      const userEmail = 'test-admin@vitest.com';
+      
+      // Save original env var
+      const originalEnvVar = process.env.NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL;
+      
+      // Explicitly set env var to true for this test
+      process.env.NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL = 'true';
+
+      try {
+        // Create a guest in PENDING status
+        const { guestId } = await createGuestForWorkflow({
+          runId,
+          status: GuestStatus.PENDING
+        });
+        createdGuestIds.push(guestId);
+
+        // Spy on the admin denial notification function
+        const sendAdminDenialNotificationSpy = vi.fn(sendAdminDenialNotification);
+
+        // Deny guest
+        const result = await denyGuest(guestId, userEmail, {
+          adminDenialNotificationFn: sendAdminDenialNotificationSpy
+        });
+
+        // Assert the action succeeded
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('denied successfully');
+
+        // Verify the database was updated
+        const supabase = await getSupabaseServiceClient();
+        const { data: guest, error } = await supabase
+          .from('guests')
+          .select('status, denied_by, denied_at')
+          .eq('id', guestId)
+          .single();
+
+        expect(error).toBeNull();
+        expect(guest).toBeDefined();
+        expect(guest!.status).toBe(GuestStatus.DENIED);
+        expect(guest!.denied_by).toBe(userEmail);
+        expect(guest!.denied_at).toBeDefined();
+
+        // Verify the admin denial notification WAS called
+        expect(sendAdminDenialNotificationSpy).toHaveBeenCalledWith(guestId);
+        expect(sendAdminDenialNotificationSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        // Restore original env var
+        if (originalEnvVar === undefined) {
+          delete process.env.NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL;
+        } else {
+          process.env.NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL = originalEnvVar;
+        }
+      }
     }, 60000);
   });
 });

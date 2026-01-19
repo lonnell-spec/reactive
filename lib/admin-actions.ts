@@ -2,7 +2,7 @@
 
 import { getSupabaseServiceClient } from './supabase-client'
 import { generateQRCode, generateUniqueCodeWord, generatePassId, generatePassViewUrl, generatePassVerificationUrl } from './guest-credentials'
-import { notifyGuestOfApproval, sendAdminInfoNotification } from './notifications'
+import { notifyGuestOfApproval, sendAdminApprovalNotification, sendAdminDenialNotification } from './notifications'
 import { GuestStatus } from './types'
 /**
  * Server action to approve a guest and generate secret credentials
@@ -99,14 +99,14 @@ export async function approveGuest(
     getSupabaseClient?: typeof getSupabaseServiceClient;
     approveAndGeneratePassFn?: typeof approveAndGeneratePass;
     notificationFn?: typeof notifyGuestOfApproval;
-    adminInfoNotificationFn?: typeof sendAdminInfoNotification;
+    adminApprovalNotificationFn?: typeof sendAdminApprovalNotification;
   } = {}
 ) {
   const {
     getSupabaseClient = getSupabaseServiceClient,
     approveAndGeneratePassFn = approveAndGeneratePass,
     notificationFn = notifyGuestOfApproval,
-    adminInfoNotificationFn = sendAdminInfoNotification
+    adminApprovalNotificationFn = sendAdminApprovalNotification
   } = dependencies;
 
   if (!guestId) {
@@ -129,7 +129,7 @@ export async function approveGuest(
     await notificationFn(guestId);
     
     // Send informational notification to admins (no action links)
-    await adminInfoNotificationFn(guestId);
+    await adminApprovalNotificationFn(guestId);
     
     return result;
   } catch (error) {
@@ -154,12 +154,12 @@ export async function denyGuest(
   userEmail: string,
   dependencies: {
     getSupabaseClient?: typeof getSupabaseServiceClient;
-    adminInfoNotificationFn?: typeof sendAdminInfoNotification;
+    adminDenialNotificationFn?: typeof sendAdminDenialNotification;
   } = {}
 ) {
   const {
     getSupabaseClient = getSupabaseServiceClient,
-    adminInfoNotificationFn = sendAdminInfoNotification
+    adminDenialNotificationFn = sendAdminDenialNotification
   } = dependencies;
 
   if (!guestId) {
@@ -189,7 +189,7 @@ export async function denyGuest(
     
     // Send informational notification to admins if enabled
     if (process.env.NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL?.toLowerCase() === 'true') {
-      await adminInfoNotificationFn(guestId);
+      await adminDenialNotificationFn(guestId);
     }
     
     return {

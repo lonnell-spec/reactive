@@ -78,7 +78,7 @@ This document covers the server actions and key functions available in the Churc
 **Process:**
 1. Updates guest status to `DENIED`
 2. Records denial details
-3. Optional: Sends info-only notification to admin (if `NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=true`)
+3. Sends info-only notification to admin by default (can be disabled with `NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=false`)
 4. No notifications sent to guest
 
 ---
@@ -339,7 +339,7 @@ TEXTMAGIC_URL=
 # Notification control
 SEND_TEXT_MESSAGES=true
 NOTIFICATION_NOTIFY_GUESTS=true
-NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=false
+NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=true
 
 # Test vs Live mode
 NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS=false

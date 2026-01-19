@@ -62,7 +62,7 @@ TEXTMAGIC_URL=https://rest.textmagic.com
 # Notification control flags
 SEND_TEXT_MESSAGES=true
 NOTIFICATION_NOTIFY_GUESTS=true
-NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=false
+NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=true
 
 # Live vs Test mode
 NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS=false
@@ -211,13 +211,13 @@ NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS=true
 
 **Guest Submission:** Pre-approvers (or admins as fallback) receive approve/deny SMS
 **Guest Approval:** Guest receives QR code SMS, Admin optionally receives info SMS
-**Guest Denial:** No notifications (Workflow ends silently)
+**Guest Denial:** Admin receives info SMS by default (configurable)
 
 ### Admin Notification on Denial
 Control via environment variable:
 ```env
-NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=false  # Default - no notification
-NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=true   # Send info notification to admin
+NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=true   # Default - send info notification to admin
+NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=false  # Disable admin notification on denial
 ```
 
 ## 🧪 Testing

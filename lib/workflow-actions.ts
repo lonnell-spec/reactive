@@ -2,7 +2,7 @@
 
 import { getSupabaseServiceClient } from './supabase-client'
 import { approveGuest, denyGuest } from './admin-actions'
-import { notifyGuestOfApproval, sendAdminInfoNotification } from './notifications'
+import { notifyGuestOfApproval, sendAdminApprovalNotification, sendAdminDenialNotification } from './notifications'
 import { GuestStatus } from './types'
 
 interface WorkflowResult {
@@ -25,7 +25,8 @@ export async function processWorkflowAction(
   textRefId: string,
   dependencies: {
     approvalNotificationFn?: typeof notifyGuestOfApproval;
-    adminInfoNotificationFn?: typeof sendAdminInfoNotification;
+    adminApprovalNotificationFn?: typeof sendAdminApprovalNotification;
+    adminDenialNotificationFn?: typeof sendAdminDenialNotification;
   } = {}
 ): Promise<WorkflowResult> {
   try {
@@ -81,12 +82,12 @@ export async function processWorkflowAction(
       // Approve the guest - generates pass and sends notifications
       result = await approveGuest(guest.id, systemUser, {
         notificationFn: dependencies.approvalNotificationFn,
-        adminInfoNotificationFn: dependencies.adminInfoNotificationFn
+        adminApprovalNotificationFn: dependencies.adminApprovalNotificationFn
       })
     } else if (action === 'deny') {
       // Deny the guest
       result = await denyGuest(guest.id, systemUser, {
-        adminInfoNotificationFn: dependencies.adminInfoNotificationFn
+        adminDenialNotificationFn: dependencies.adminDenialNotificationFn
       })
     }
 

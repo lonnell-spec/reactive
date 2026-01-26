@@ -2,7 +2,7 @@
 
 import { sendTextMagicSMS, sendTextMagicEmail } from './textmagic';
 import { GuestStatus } from './types';
-import { formatApprovalMessage, formatApproverMessage, formatApproverDenialMessage, formatDenialMessage, formatPreApprovalMessage, formatPreApproverMessage } from './message-utils';
+import { formatApprovalMessage, formatPreApproverMessage, formatAdminApprovalMessage, formatAdminDenialMessage } from './message-utils';
 import { getSupabaseServiceClient } from './supabase-client';
 import { generateDeepLinkUrl, generatePassViewUrl, generateApprovalUrl, generateDenialUrl } from './guest-credentials';
 
@@ -171,57 +171,12 @@ export async function sendPreApproverNotification(guestId: string) {
   }
 }
 
-/**
- * Sends a notification to approvers when a guest registration is pre-approved
- */
-export async function sendApproverNotification(guestId: string) {
-  try {
-    const supabaseService = await getSupabaseServiceClient();
-    // Get the guest information from Supabase
-    const { data: guest, error: guestError } = await supabaseService
-      .from('guests')
-      .select('*')
-      .eq('id', guestId)
-      .single();
-    
-    if (guestError || !guest) {
-      throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
-    }
-    
-    // Get phone numbers and email addresses for admins using the extracted functions
-    const phoneNumbers = await getPhoneNumbersByRole('admin');
-    
-    if (phoneNumbers.length === 0) {
-      console.warn(`[sendApproverNotification] No phone numbers found for admin role, guestId: ${guestId}`);
-      return false;
-    }
-
-    const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
-    const approvalUrl = await generateApprovalUrl(guest.text_callback_reference_id);
-    const denialUrl = await generateDenialUrl(guest.text_callback_reference_id);
-    // Format the message using pure utility function
-    const message = await formatApproverMessage(guest, deepLinkUrl, approvalUrl, denialUrl);
-
-    // Send SMS and Email to all recipients using the extracted functions
-    let smsSuccess = false;
-
-    if (phoneNumbers.length > 0) {
-      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
-      smsSuccess = smsResult.success;
-    }
-    
-    // Return true if SMS was sent successfully
-    return smsSuccess;
-  } catch (error) {
-    console.error(`[sendApproverNotification] Failed to send approver notification for guest ${guestId}:`, error);
-    return false;
-  }
-}
 
 /**
- * Sends a notification to approvers when a guest pre-approval is denied
+ * Sends an informational notification to admins when a guest is approved
+ * This is for informational purposes only - no action links included
  */
-export async function sendApproverNotificationOfDenial(guestId: string) {
+export async function sendAdminApprovalNotification(guestId: string) {
   try {
     const supabaseService = await getSupabaseServiceClient();
     // Get the guest information from Supabase
@@ -239,13 +194,13 @@ export async function sendApproverNotificationOfDenial(guestId: string) {
     const phoneNumbers = await getPhoneNumbersByRole('admin');
     
     if (phoneNumbers.length === 0) {
-      console.warn(`[sendApproverNotificationOfDenial] No phone numbers found for admin role, guestId: ${guestId}`);
+      console.warn(`[sendAdminApprovalNotification] No phone numbers found for admin role, guestId: ${guestId}`);
       return false;
     }
 
     const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
-    // Format the message using pure utility function
-    const message = await formatApproverDenialMessage(guest, deepLinkUrl);
+    // Format the message using pure utility function (no action links)
+    const message = await formatAdminApprovalMessage(guest, deepLinkUrl);
 
     // Send SMS to all recipients using the extracted functions
     let smsSuccess = false;
@@ -258,28 +213,19 @@ export async function sendApproverNotificationOfDenial(guestId: string) {
     // Return true if SMS was sent successfully
     return smsSuccess;
   } catch (error) {
-    console.error(`[sendApproverNotificationOfDenial] Failed to send denial notification for guest ${guestId}:`, error);
+    console.error(`[sendAdminApprovalNotification] Failed to send admin approval notification for guest ${guestId}:`, error);
     return false;
   }
 }
 
 /**
- * Sends an SMS notification to a guest when their registration has been pre-approved
- * Uses the template from NEW_WORKFLOW_SUMMARY.md Step 3A
+ * Sends an informational notification to admins when a guest is denied
+ * This is for informational purposes only - no action links included
  */
-export async function notifyGuestOfPreApproval(guestId: string) {
+export async function sendAdminDenialNotification(guestId: string) {
   try {
-
-    if (process.env.NOTIFICATION_NOTIFY_GUESTS?.toLowerCase() === 'false') {
-      return {
-        success: true,
-        message: 'Guest notification disabled'
-      };
-    }
-
-    // Get the guest details from Supabase
     const supabaseService = await getSupabaseServiceClient();
-    
+    // Get the guest information from Supabase
     const { data: guest, error: guestError } = await supabaseService
       .from('guests')
       .select('*')
@@ -290,73 +236,31 @@ export async function notifyGuestOfPreApproval(guestId: string) {
       throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
     }
     
-    // Format the message
-    const message = await formatPreApprovalMessage(guest);
+    // Get phone numbers for admins using the extracted functions
+    const phoneNumbers = await getPhoneNumbersByRole('admin');
+    
+    if (phoneNumbers.length === 0) {
+      console.warn(`[sendAdminDenialNotification] No phone numbers found for admin role, guestId: ${guestId}`);
+      return false;
+    }
 
-    // Send SMS notification
+    const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
+    // Format the message using pure utility function (no action links)
+    const message = await formatAdminDenialMessage(guest, deepLinkUrl);
+
+    // Send SMS to all recipients using the extracted functions
     let smsSuccess = false;
-    let smsError = '';
 
-    const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS === 'true';
-
-    // Send SMS
-    if (useActualPhones) {
-      // Send to actual guest phone
-      if (guest.phone) {
-        const { success, error } = await sendTextMagicSMS({
-          phone: guest.phone,
-          message: message,
-        });
-        smsSuccess = success;
-        if (!success) {
-          smsError = error || 'Unknown SMS error';
-        }
-      }
-    } else {
-      // Send to test phone numbers
-      const testPhones = process.env.NOTIFICATION_TEST_PHONE_NUMBERS;
-      if (testPhones) {
-        const phoneNumbers = testPhones
-          .split(',')
-          .map(phone => phone.trim())
-          .filter(phone => phone.length > 0);
-        
-        const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message);
-        smsSuccess = smsResult.success;
-        if (!smsResult.success) {
-          smsError = `Failed to send to test numbers`;
-        }
-      }
-    }
-
-    // If SMS failed, throw an error
-    if (!smsSuccess) {
-      const errors = [];
-      if (smsError) errors.push(`SMS: ${smsError}`);
-      if (!guest.phone && useActualPhones) errors.push('No phone number available');
-      throw new Error(`Failed to send notifications: ${errors.join(', ')}`);
+    if (phoneNumbers.length > 0) {
+      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
+      smsSuccess = smsResult.success;
     }
     
-    // Build success message
-    const successMethods = [];
-    if (smsSuccess) {
-      if (useActualPhones && guest.phone) {
-        successMethods.push(`SMS to ${guest.phone}`);
-      } else {
-        successMethods.push(`SMS to test numbers`);
-      }
-    }
-    
-    return {
-      success: true,
-      message: `Pre-approval notification sent via ${successMethods.join(' and ')}`
-    };
+    // Return true if SMS was sent successfully
+    return smsSuccess;
   } catch (error) {
-    console.error(`[notifyGuestOfPreApproval] Failed to send pre-approval notification for guest ${guestId}:`, error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to send pre-approval notification'
-    };
+    console.error(`[sendAdminDenialNotification] Failed to send admin denial notification for guest ${guestId}:`, error);
+    return false;
   }
 }
 
@@ -453,106 +357,6 @@ export async function notifyGuestOfApproval(guestId: string) {
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to send approval notification'
-    };
-  }
-}
-
-/**
- * Sends an SMS notification to a guest when their registration has been denied
- */
-export async function notifyGuestOfDenial(guestId: string) {
-  try {
-    if (process.env.NOTIFICATION_NOTIFY_GUESTS?.toLowerCase() === 'false') {
-      return {
-        success: true,
-        message: 'Guest notification disabled'
-      };
-    }
-
-    // Get the guest details from Supabase
-    const supabaseService = await getSupabaseServiceClient();
-    
-    const { data: guest, error: guestError } = await supabaseService
-      .from('guests')
-      .select('*')
-      .eq('id', guestId)
-      .single();
-    
-    if (guestError || !guest) {
-      throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
-    }
-    
-    const churchContactEmail = process.env.CHURCH_CONTACT_EMAIL;
-    if (!churchContactEmail) {
-      throw new Error('Church contact email is not set');
-    }
-    
-    // Format the message
-    const message = await formatDenialMessage(guest, churchContactEmail);
-    
-    // Send SMS notification
-    let smsSuccess = false;
-    let smsError = '';
-
-    const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS === 'true';
-
-    // Send SMS
-    if (useActualPhones) {
-      // Send to actual guest phone
-      if (guest.phone) {
-        const { success, error } = await sendTextMagicSMS({
-          phone: guest.phone,
-          message: message,
-        });
-        smsSuccess = success;
-        if (!success) {
-          smsError = error || 'Unknown SMS error';
-        }
-      }
-    } else {
-      // Send to test phone numbers
-      const testPhones = process.env.NOTIFICATION_TEST_PHONE_NUMBERS;
-      if (testPhones) {
-        const phoneNumbers = testPhones
-          .split(',')
-          .map(phone => phone.trim())
-          .filter(phone => phone.length > 0);
-        
-        const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message);
-        smsSuccess = smsResult.success;
-        if (!smsResult.success) {
-          smsError = `Failed to send to test numbers`;
-        }
-      }
-    }
-
-    // If SMS failed, throw an error
-    if (!smsSuccess) {
-      const errors = [];
-      if (smsError) errors.push(`SMS: ${smsError}`);
-      if (!guest.phone && useActualPhones) errors.push('No phone number available');
-      throw new Error(`Failed to send notifications: ${errors.join(', ')}`);
-    }
-    
-    // Build success message
-    const successMethods = [];
-    if (smsSuccess) {
-      if (useActualPhones && guest.phone) {
-        successMethods.push(`SMS to ${guest.phone}`);
-      } else {
-        successMethods.push(`SMS to test numbers`);
-      }
-    }
-    
-    return {
-      success: true,
-      message: `Denial notification sent via ${successMethods.join(' and ')}`
-    };
-  } catch (error) {
-    console.error(`[notifyGuestOfDenial] Failed to send denial notification for guest ${guestId}:`, error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to send denial notification'
     };
   }
 }

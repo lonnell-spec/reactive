@@ -53,7 +53,7 @@ describe('Data Transformation', () => {
         food_allergies: 'None',
         special_needs: 'None',
         additional_notes: 'Looking forward to visiting',
-        status: GuestStatus.PENDING_PRE_APPROVAL,
+        status: GuestStatus.PENDING,
         expires_at: undefined,
         text_callback_reference_id: undefined
       });

@@ -2,7 +2,7 @@
 
 import { getSupabaseServiceClient } from './supabase-client'
 import { generateQRCode, generateUniqueCodeWord, generatePassId, generatePassViewUrl, generatePassVerificationUrl } from './guest-credentials'
-import { notifyGuestOfApproval, sendApproverNotification, sendApproverNotificationOfDenial } from './notifications'
+import { notifyGuestOfApproval, sendAdminApprovalNotification, sendAdminDenialNotification } from './notifications'
 import { GuestStatus } from './types'
 /**
  * Server action to approve a guest and generate secret credentials
@@ -85,150 +85,28 @@ export async function approveAndGeneratePass(
 }
 
 /**
- * Server action to pre-approve a guest submission
- * This runs on the server with service role permissions
- * 
- * @param guestId Guest ID to pre-approve
- * @param userEmail Email of the admin pre-approving the guest
- * @param dependencies Injectable dependencies for testing
- */
-export async function preApproveGuest(
-  guestId: string,
-  userEmail: string,
-  dependencies: {
-    getSupabaseClient?: typeof getSupabaseServiceClient;
-    approverNotificationFn?: typeof sendApproverNotification;
-  } = {}
-) {
-  const {
-    getSupabaseClient = getSupabaseServiceClient,
-    approverNotificationFn = sendApproverNotification
-  } = dependencies;
-
-  if (!guestId) {
-    throw new Error('Guest ID is required');
-  }
-
-  if (!userEmail) {
-    throw new Error('User email is required');
-  }
-
-  try {
-    const supabaseService = await getSupabaseClient();
-    
-    // Update the guest status to pre-approved using service role client
-    const { error: updateError } = await supabaseService
-      .from('guests')
-      .update({
-        status: GuestStatus.PENDING,
-        pre_approved_by: userEmail,
-        pre_approved_at: new Date().toISOString()
-      })
-      .eq('id', guestId);
-    
-    if (updateError) {
-      throw new Error(`Database error: ${updateError.message}`);
-    }
-    
-    // Send notifications
-    await approverNotificationFn(guestId);
-    
-    return {
-      success: true,
-      message: 'Guest pre-approved successfully'
-    };
-  } catch (error) {
-    console.error(`[preApproveGuest] Failed to pre-approve guest ${guestId}:`, error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to pre-approve guest'
-    };
-  }
-}
-
-/**
- * Server action to deny pre-approval for a guest submission
- * This runs on the server with service role permissions
- * 
- * @param guestId Guest ID to deny
- * @param userEmail Email of the admin denying the guest
- * @param denialMessage Message to send to guest
- * @param dependencies Injectable dependencies for testing
- */
-export async function denyPreApproval(
-  guestId: string,
-  userEmail: string,
-  denialMessage: string = "Your pre-approval request has been denied.",
-  dependencies: {
-    getSupabaseClient?: typeof getSupabaseServiceClient;
-    denialApproverNotificationFn?: typeof sendApproverNotificationOfDenial;
-  } = {}
-) {
-  const {
-    getSupabaseClient = getSupabaseServiceClient,
-    denialApproverNotificationFn = sendApproverNotificationOfDenial
-  } = dependencies;
-
-  if (!guestId) {
-    throw new Error('Guest ID is required');
-  }
-
-  if (!userEmail) {
-    throw new Error('User email is required');
-  }
-
-  try {
-    const supabaseService = await getSupabaseClient();
-    
-    // Update the guest status to pre-approval denied using service role client
-    const { error: updateError } = await supabaseService
-      .from('guests')
-      .update({
-        status: GuestStatus.PRE_APPROVAL_DENIED,
-        pre_approval_denied_by: userEmail,
-        pre_approval_denied_at: new Date().toISOString()
-      })
-      .eq('id', guestId);
-    
-    if (updateError) {
-      throw new Error(`Database error: ${updateError.message}`);
-    }
-    
-    // Send notification to approvers
-    await denialApproverNotificationFn(guestId);
-    
-    return {
-      success: true,
-      message: 'Pre-approval denied successfully'
-    };
-  } catch (error) {
-    console.error(`[denyPreApproval] Failed to deny pre-approval for guest ${guestId}:`, error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to deny pre-approval'
-    };
-  }
-}
-
-/**
- * Server action to approve a guest submission (final approval)
+ * Server action to approve a guest submission and generate credentials
  * This runs on the server with service role permissions
  * 
  * @param guestId Guest ID to approve
- * @param userEmail Email of the admin approving the guest
+ * @param userEmail Email of the user approving the guest
  * @param dependencies Injectable dependencies for testing
  */
 export async function approveGuest(
   guestId: string,
   userEmail: string,
   dependencies: {
+    getSupabaseClient?: typeof getSupabaseServiceClient;
     approveAndGeneratePassFn?: typeof approveAndGeneratePass;
     notificationFn?: typeof notifyGuestOfApproval;
+    adminApprovalNotificationFn?: typeof sendAdminApprovalNotification;
   } = {}
 ) {
   const {
+    getSupabaseClient = getSupabaseServiceClient,
     approveAndGeneratePassFn = approveAndGeneratePass,
-    notificationFn = notifyGuestOfApproval
+    notificationFn = notifyGuestOfApproval,
+    adminApprovalNotificationFn = sendAdminApprovalNotification
   } = dependencies;
 
   if (!guestId) {
@@ -250,6 +128,9 @@ export async function approveGuest(
     // Send SMS notification to the guest
     await notificationFn(guestId);
     
+    // Send informational notification to admins (no action links)
+    await adminApprovalNotificationFn(guestId);
+    
     return result;
   } catch (error) {
     console.error(`[approveGuest] Failed to approve guest ${guestId}:`, error);
@@ -261,24 +142,24 @@ export async function approveGuest(
 }
 
 /**
- * Server action to deny a guest submission (final denial)
+ * Server action to deny a guest submission
  * This runs on the server with service role permissions
  * 
  * @param guestId Guest ID to deny
- * @param userEmail Email of the admin denying the guest
- * @param denialMessage Message to send to guest
+ * @param userEmail Email of the user denying the guest
  * @param dependencies Injectable dependencies for testing
  */
 export async function denyGuest(
   guestId: string,
   userEmail: string,
-  denialMessage: string = "Your guest registration has been denied.",
   dependencies: {
     getSupabaseClient?: typeof getSupabaseServiceClient;
+    adminDenialNotificationFn?: typeof sendAdminDenialNotification;
   } = {}
 ) {
   const {
     getSupabaseClient = getSupabaseServiceClient,
+    adminDenialNotificationFn = sendAdminDenialNotification
   } = dependencies;
 
   if (!guestId) {
@@ -292,7 +173,7 @@ export async function denyGuest(
   try {
     const supabaseService = await getSupabaseClient();
     
-    // Update the submission in Supabase using service role client
+    // Update the guest status to denied using service role client
     const { error: updateError } = await supabaseService
       .from('guests')
       .update({
@@ -304,6 +185,11 @@ export async function denyGuest(
     
     if (updateError) {
       throw new Error(`Database error: ${updateError.message}`);
+    }
+    
+    // Send informational notification to admins if enabled
+    if (process.env.NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL?.toLowerCase() === 'true') {
+      await adminDenialNotificationFn(guestId);
     }
     
     return {

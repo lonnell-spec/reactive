@@ -1,14 +1,14 @@
 # User Guide - Church Guest Registration System
 
-This guide is for church staff who will be using the guest registration system to manage visitors and approve registrations.
+This guide is for church staff who will be using the guest registration system to manage visitors and handle guest approvals.
 
 ## 🎯 Getting Started
 
 ### Creating Your Account
 
 1. **Get Registration Code** - Ask your church administrator for either:
-   - **Admin Code** - Full access to admin - receives Approver notifications.
-   - **General Code** - Full access to admin - receives Pre-approver notifications.
+   - **Admin Code** - For admin users who receive informational notifications (optional, based on settings)
+   - **General Code** - For pre-approver users who handle guest approvals
 
 2. **Sign Up Process:**
    - Go to the admin login page
@@ -25,22 +25,26 @@ This guide is for church staff who will be using the guest registration system t
 
 **👤 All Users Currently Can:**
 - View and manage all guest registrations
-- Approve or deny guests at any stage
+- Approve or deny guests
 - Manage user accounts and assign roles
 - Update their own profile information
 - Access all system features
 
-**👑 Admin Users Can:**
-- Receive SMS notifications for Approval
+**🔍 Pre-Approver Users:**
+- Receive SMS notifications when new guests submit registrations
+- Can approve (generates QR code) or deny guests
+- Single approval decision - no second step
 
-**🔍 Pre-Approver Users Can:**
-- Receive SMS notifications for Pre-Approval
+**👑 Admin Users:**
+- Can optionally receive informational notifications when guests are approved (if enabled)
+- No action required in notifications - for informational purposes only
+- Full access to system features
 
-**‼️Important! You must assign roles properly to get correct notifications to roles:**
-- If you have Admin role you'll get Approver Notifications
-- If you only have Pre-Approver you'll only get Pre-Approve notifications
-- If you have both roles you'll get all notifications
-- See User Management and Notifcation Sections below
+**‼️ Important! Role Configuration for Notifications:**
+- Pre-Approvers should have the "Pre-Approver" role to receive initial SMS notifications
+- Admins can have the "Admin" role to optionally receive approval notifications
+- Users can have both roles to receive all notifications
+- See User Management section below for role assignment
 
 ## 📱 Navigating the System
 
@@ -49,8 +53,7 @@ This guide is for church staff who will be using the guest registration system t
 The main dashboard shows all guest registrations with:
 - **Guest photo and basic info** (name, email, visit date)
 - **Status indicators** with color coding:
-  - 🟡 **Pending Pre-Approval** - Needs initial review
-  - 🔵 **Pending** - Pre-approved, needs final approval
+  - 🟡 **Pending** - Awaiting approval decision
   - 🟢 **Approved** - Fully approved with QR code
   - 🔴 **Denied** - Registration rejected
 
@@ -76,40 +79,23 @@ On mobile devices, use the hamburger menu (☰) to access:
    - Children information (if applicable)
    - Photos (guest and children)
 
-### Pre-Approval Process (Pre-Approvers)
+### Approval Process (Pre-Approvers)
 
 When a new guest registers:
 
-1. **You'll receive a notification** via SMS
+1. **You'll receive a notification** via SMS with approve/deny links
 2. **You can take action directly from the SMS:**
-   - Click the **Approve** link in the text message to pre-approve
+   - Click the **Approve** link in the text message to approve and generate QR code
    - Click the **Deny** link in the text message to reject
 3. **Or review the guest details** in the dashboard:
-   - **Pre-Approve** - Guest looks good, send to final approval
-   - **Deny** - Reject the registration with a reason
-
-### Final Approval Process (Admins)
-
-For pre-approved guests:
-
-1. **You'll receive a notification** when a guest has been pre-approved
-2. **You can see the pre-approval decision:**
-   - If pre-approved: Guest shows **Pending** (blue) status
-   - If denied by pre-approver: Guest shows **Pre-Approval Denied** (red) status
-3. **For pre-approved guests, you must still give final approval:**
-   - Click the **Approve** link in the SMS notification for quick approval
-   - Or log in to the dashboard to review guest details and approve
-4. **Generate pass credentials:**
-   - **Approve** - Creates QR code and access credentials
-   - **Deny** - Reject with reason
+   - **Approve** - Generate QR code and access credentials
+   - **Deny** - Reject the registration
 
 ### Guest Status Meanings
 
-- **Pending Pre-Approval** 🟡 - Just submitted, needs initial review
-- **Pending** 🔵 - Pre-approved, waiting for final approval
-- **Approved** 🟢 - Fully approved, has QR code and access
-- **Pre-Approval Denied** 🔴 - Rejected at pre-approval stage
-- **Denied** 🔴 - Rejected at final approval stage
+- **Pending** 🟡 - Awaiting approval decision
+- **Approved** 🟢 - Fully approved with QR code and access information
+- **Denied** 🔴 - Registration has been rejected
 
 ## 🔐 Manual Verification
 
@@ -135,9 +121,9 @@ Use this feature to verify guest passes on-site:
 
 ### Role Combinations
 
-- **Admin Only** - Full system access - Approval notifcatoins
-- **Pre-Approver Only** - Full system access - Pre-approver notifications
-- **Admin + Pre-Approver** - Full access plus ALL notifications
+- **Pre-Approver Only** - Receives initial approve/deny notifications
+- **Admin Only** - Can optionally receive approval information notifications (configurable)
+- **Admin + Pre-Approver** - Receives both pre-approver and admin notifications
 
 ## ⚙️ Profile Management
 
@@ -153,17 +139,15 @@ Use this feature to verify guest passes on-site:
 
 ## 📧 SMS Notifications
 
-Pre-approvers receive SMS messages when:
+**Pre-Approvers receive SMS messages when:**
 - New guests submit registrations
-- Messages include guest name, visit date, and approval/denial links
-- Click the links to approve or deny directly from your phone
+- Messages include guest name, visit date, and approve/deny links
+- Click the links to approve (generating QR code) or deny directly from your phone
 
-Admins/Approvers receive SMS messages when:
-- New guests have been pre-approved
-- Messages include guest name, visit date, and approval link
-- Click the link to approve directly from your phone
-
-**Note:** Admins also receive a notification when a guest is denied by a pre-approver. This is for informational purposes only—no action is required from admins for denied guests.
+**Admins receive SMS messages when (if enabled):**
+- Guests have been approved
+- Messages are informational only - no action required
+- Include guest name, visit date, and a link to guest details
 
 ## 📱 Mobile Tips
 
@@ -184,23 +168,16 @@ Admins/Approvers receive SMS messages when:
 
 ## 🆘 Common Tasks
 
-### How to Pre-Approve a Guest
-1. Open guest details from dashboard
+### How to Approve a Guest
+1. Open guest details from dashboard OR click approve link in SMS
 2. Review all information and photos
-3. Click "Pre-Approve" button
-4. Guest moves to "Pending" status
-
-### How to Generate Final Approval
-1. Find guest with "Pending" (blue) status
-2. Open guest details
-3. Click "Approve and Generate Pass"
+3. Click "Approve Guest" button
 4. Guest receives QR code and access information
 
-### How to Deny a Registration
-1. Open guest details
-2. Click "Deny" button
-3. Optionally add a reason
-4. Guest is notified of denial
+### How to Deny a Guest
+1. Open guest details from dashboard OR click deny link in SMS
+2. Click "Deny Guest" button
+3. Guest registration is rejected (workflow ends)
 
 ### How to Check a Guest Pass
 1. Go to "Manual Verification"
@@ -208,17 +185,11 @@ Admins/Approvers receive SMS messages when:
 3. Verify guest photo matches person
 4. Check visit date and details
 
-### How to Add New Admin Users
-1. Give them the admin registration code
+### How to Add New Users
+1. Give them the registration code
 2. Have them create account at login page
 3. Go to User Management
-4. Assign appropriate roles
-
-### How to General Users
-1. Give them the non admin registration code
-2. Have them create account at login page
-3. Go to User Management
-4. Assign appropriate roles (such as Pre-Approver)
+4. Assign appropriate roles (Pre-Approver, Admin, or both)
 
 ## 🔒 Security Best Practices
 
@@ -238,7 +209,7 @@ Admins/Approvers receive SMS messages when:
 ### Not Receiving Notifications
 - Check your phone number is correct in your profile
 - Verify SMS settings with church administrator
-- Ensure you have the correct role assigned (Admin or Pre-Approver)
+- Ensure you have the Pre-Approver role assigned
 
 ### Guest Photos Not Loading
 - Check your internet connection

@@ -62,6 +62,7 @@ TEXTMAGIC_URL=https://rest.textmagic.com
 # Notification control flags
 SEND_TEXT_MESSAGES=true
 NOTIFICATION_NOTIFY_GUESTS=true
+NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=true
 
 # Live vs Test mode
 NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS=false
@@ -191,9 +192,10 @@ guest-photos/
 
 ### SMS Flow
 1. Guest submits registration
-2. System determines recipients based on environment flags
-3. Sends SMS notifications via TextMagic API
-4. Recipients can approve/deny via links in SMS or via admin dashboard
+2. System sends SMS to pre_approvers with approve/deny links (or fallback to admins)
+3. Pre-approver clicks approve/deny link or uses admin dashboard
+4. On approval: Guest receives QR code SMS, Admin optionally receives info SMS
+5. On denial: Workflow ends (no notifications to guest, admin notification optional)
 
 ### Test vs Live Mode
 ```typescript
@@ -203,6 +205,19 @@ NOTIFICATION_TEST_PHONE_NUMBERS=+1234567890
 
 // Live mode - uses actual user phone numbers
 NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS=true
+```
+
+### Notification Recipients
+
+**Guest Submission:** Pre-approvers (or admins as fallback) receive approve/deny SMS
+**Guest Approval:** Guest receives QR code SMS, Admin optionally receives info SMS
+**Guest Denial:** Admin receives info SMS by default (configurable)
+
+### Admin Notification on Denial
+Control via environment variable:
+```env
+NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=true   # Default - send info notification to admin
+NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=false  # Disable admin notification on denial
 ```
 
 ## 🧪 Testing
@@ -368,14 +383,16 @@ export default function MyComponent() {
 ### Guest Registration Flow
 1. **Form Submission** → Client validation → Server action
 2. **Data Processing** → Parse FormData → Validate with Zod
-3. **Database Insert** → Guest record → Upload photos → Insert children
-4. **Notification** → Send SMS to pre-approvers
+3. **Database Insert** → Guest record (status: PENDING) → Upload photos → Insert children
+4. **Notification** → Send SMS to pre-approvers (or admins via fallback)
 5. **Rollback** → On any failure, clean up database and storage
 
 ### Approval Flow
-1. **Pre-Approval** → Update status → Notify approvers via SMS
-2. **Final Approval** → Generate QR code → Create pass credentials
-3. **Guest Notification** → Send approval confirmation via SMS
+1. **Pre-Approver Decision** → Approve or Deny guest
+2. **Approval Path** → Generate QR code → Create pass credentials → Set status to APPROVED
+3. **Guest Notification** → Send approval SMS with QR code link
+4. **Admin Notification** → Send info-only SMS (if enabled)
+5. **Denial Path** → Set status to DENIED → Optional admin notification (if enabled)
 
 ## 🛠️ Customization
 
@@ -405,7 +422,6 @@ NOTIFICATION_NOTIFY_GUESTS=false  # Disable guest notifications
 - `submitGuestForm(formData)` - Submit new guest registration
 - `approveGuest(guestId, userEmail)` - Approve guest and generate pass
 - `denyGuest(guestId, userEmail)` - Deny guest registration
-- `preApproveGuest(guestId, userEmail)` - Pre-approve guest
 
 **User Management:**
 - `updateUserRoles(userId, roles)` - Update user role assignments

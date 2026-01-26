@@ -53,8 +53,6 @@ interface GuestDetailsModalProps {
   submission: Submission | null
   actionLoading: string | null
   onClose: () => void
-  onPreApprove: (id: string) => void
-  onPreApprovalDeny: (id: string) => void
   onApprove: (id: string) => void
   onDeny: (id: string) => void
   getRelativeTime: (date: string) => string
@@ -69,8 +67,6 @@ export function GuestDetailsModal({
   submission,
   actionLoading,
   onClose,
-  onPreApprove,
-  onPreApprovalDeny,
   onApprove,
   onDeny,
   getRelativeTime,
@@ -110,27 +106,6 @@ export function GuestDetailsModal({
               </div>
               
               <div className="w-full">
-                {submission.status === 'pending_pre_approval' && (
-                  <div className="flex flex-col gap-3">
-                    <Button 
-                      onClick={() => onPreApprove(submission.id)}
-                      className="bg-green-600 hover:bg-green-700 text-white w-full"
-                      disabled={actionLoading === submission.id}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Pre-Approve
-                    </Button>
-                    <Button 
-                      onClick={() => onPreApprovalDeny(submission.id)}
-                      variant="outline"
-                      className="border-red-600 text-red-600 hover:bg-red-50 w-full"
-                      disabled={actionLoading === submission.id}
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Deny Pre-Approval
-                    </Button>
-                  </div>
-                )}
                 {submission.status === 'pending' && (
                   <div className="flex flex-col gap-3">
                     <Button 
@@ -162,12 +137,6 @@ export function GuestDetailsModal({
                   <Badge className="bg-red-600 text-white py-2 px-4 text-base w-full justify-center">
                     <XCircle className="w-4 h-4 mr-1" />
                     Denied
-                  </Badge>
-                )}
-                {submission.status === 'pre_approval_denied' && (
-                  <Badge className="bg-red-600 text-white py-2 px-4 text-base w-full justify-center">
-                    <XCircle className="w-4 h-4 mr-1" />
-                    Pre-Approval Denied
                   </Badge>
                 )}
               </div>

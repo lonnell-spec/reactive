@@ -90,8 +90,6 @@ export const fileSchema = z.object({
 
 // Enum for guest status
 export enum GuestStatus {
-  PENDING_PRE_APPROVAL = 'pending_pre_approval',
-  PRE_APPROVAL_DENIED = 'pre_approval_denied',
   PENDING = 'pending',
   APPROVED = 'approved',
   DENIED = 'denied'

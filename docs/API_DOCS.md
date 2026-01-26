@@ -25,15 +25,15 @@ This document covers the server actions and key functions available in the Churc
 
 **Process:**
 1. Validates and parses form data
-2. Inserts guest record with `PENDING_PRE_APPROVAL` status
+2. Inserts guest record with `PENDING` status
 3. Uploads profile and children photos
 4. Sends notifications to pre-approvers
 5. Rolls back on any failure
 
 ---
 
-#### `preApproveGuest(guestId: string, userEmail: string)`
-**Purpose**: Pre-approve a guest registration  
+#### `approveGuest(guestId: string, userEmail: string)`
+**Purpose**: Approve a guest registration and generate pass credentials  
 **Location**: `lib/admin-actions.ts`  
 **Access**: Pre-approvers and Admins
 
@@ -50,46 +50,22 @@ This document covers the server actions and key functions available in the Churc
 ```
 
 **Process:**
-1. Updates guest status to `PENDING`
-2. Records pre-approval details
-3. Sends notifications to approvers and guest
-
----
-
-#### `approveGuest(guestId: string, userEmail: string)`
-**Purpose**: Give final approval and generate pass credentials  
-**Location**: `lib/admin-actions.ts`  
-**Access**: Admins only
-
-**Parameters:**
-- `guestId` - UUID of the guest record
-- `userEmail` - Email of the admin performing the action
-
-**Returns:**
-```typescript
-{
-  success: boolean;
-  message: string;
-}
-```
-
-**Process:**
 1. Generates unique QR code and code word
 2. Updates guest status to `APPROVED`
 3. Sets pass expiration date
 4. Sends approval notification to guest
+5. Sends info-only notification to admin (if enabled)
 
 ---
 
-#### `denyGuest(guestId: string, userEmail: string, denialMessage?: string)`
+#### `denyGuest(guestId: string, userEmail: string)`
 **Purpose**: Deny a guest registration  
 **Location**: `lib/admin-actions.ts`  
-**Access**: Pre-approvers and Admins (based on guest status)
+**Access**: Pre-approvers and Admins
 
 **Parameters:**
 - `guestId` - UUID of the guest record
 - `userEmail` - Email of the user performing the action
-- `denialMessage` - Optional custom denial message
 
 **Returns:**
 ```typescript
@@ -100,9 +76,15 @@ This document covers the server actions and key functions available in the Churc
 ```
 
 **Process:**
-1. Updates guest status to appropriate denial status
+1. Updates guest status to `DENIED`
 2. Records denial details
-3. Sends denial notification to guest
+3. Sends info-only notification to admin by default (can be disabled with `NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=false`)
+4. No notifications sent to guest
+
+---
+
+#### `preApproveGuest(guestId: string, userEmail: string)` - DEPRECATED
+**Note:** This function was part of the old two-step workflow and is no longer used. Use `approveGuest()` instead.
 
 ---
 
@@ -356,16 +338,14 @@ TEXTMAGIC_URL=
 ```env
 # Notification control
 SEND_TEXT_MESSAGES=true
-SEND_EMAILS=true
 NOTIFICATION_NOTIFY_GUESTS=true
+NOTIFICATION_NOTIFY_ADMIN_ON_DENIAL=true
 
 # Test vs Live mode
 NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS=false
-NOTIFICATION_USE_ACTUAL_EMAIL_ADDRESSES=false
 
 # Test recipients
 NOTIFICATION_TEST_PHONE_NUMBERS=+1234567890
-NOTIFICATION_TEST_EMAIL_ADDRESSES=test@example.com
 ```
 
 ---

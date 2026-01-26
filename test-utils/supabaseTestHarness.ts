@@ -230,7 +230,7 @@ export async function createGuestForWorkflow(options: {
   status?: GuestStatus;
   textRefId?: number;
 }): Promise<{ guestId: string; textRefId: number }> {
-  const { runId, status = GuestStatus.PENDING_PRE_APPROVAL, textRefId } = options;
+  const { runId, status = GuestStatus.PENDING, textRefId } = options;
   const suffix = makeUniqueSuffix(runId);
   const supabaseService = await getSupabaseServiceClient();
   

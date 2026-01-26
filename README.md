@@ -1,20 +1,20 @@
 # PAM Special Guest Registration
 
-A modern, secure guest registration system built for churches using Next.js, Supabase, and TextMagic. Features a two-step approval workflow, role-based administration, SMS/email notifications, and mobile-responsive design.
+A modern, secure guest registration system built for churches using Next.js, Supabase, and TextMagic. Features a streamlined single-step approval workflow, role-based administration, SMS notifications, and mobile-responsive design.
 
 ## 🚀 Quick Start
 
 ### For Users (Church Staff)
-👉 **[User Guide](USER_GUIDE.md)** - How to use the system, create accounts, manage guests, and navigate the interface.
+👉 **[User Guide](docs/USER_GUIDE.md)** - How to use the system, create accounts, manage guests, and navigate the interface.
 
 ### For Developers
-👉 **[Developer Guide](DEVELOPER_GUIDE.md)** - Technical setup, configuration, and development information.
+👉 **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Technical setup, configuration, and development information.
 
 ## 📋 System Overview
 
-### Core Features
+### Core Features 
 - **Guest Registration Form** - Mobile-friendly form with photo uploads for guests and children
-- **Two-Step Approval Workflow** - Pre-approval → Final approval process
+- **Single-Step Approval Workflow** - Pre-approvers approve/deny with one decision
 - **Role-Based Administration** - Admin and pre-approver roles with different permissions
 - **SMS Notifications** - Automated notifications via TextMagic integration
 - **QR Code Generation** - Secure passes for approved guests
@@ -22,14 +22,15 @@ A modern, secure guest registration system built for churches using Next.js, Sup
 - **Image Compression** - Automatic client-side photo compression for faster uploads
 
 ### User Roles
-- **Admin** - Gets Final Approval Notifications. Full access to all features, user management, and system configuration
-- **Pre-Approver** - Gets Pre-Approver notifications. Full access to all features, user management, and system configuration
+- **Pre-Approver** - Receives initial approve/deny notifications for new guest registrations
+- **Admin** - Receives informational notifications when guests are approved (optional, configurable)
 
 ### Workflow
 1. **Guest Submission** - Guests fill out registration form with photos
-2. **Pre-Approval** - Pre-approvers receive notifications and review submissions
-3. **Final Approval** - Admins review pre-approved guests and generate passes
+2. **Pre-Approval Review** - Pre-approvers receive SMS notifications and review submissions
+3. **Approval Decision** - Pre-approvers approve (generates QR code) or deny (workflow ends)
 4. **Guest Access** - Approved guests receive QR codes and access information
+5. **Admin Notification** (optional) - Admins can receive info-only notifications about approvals
 
 ## 🛡️ Security Features
 
@@ -104,15 +105,16 @@ npm run test:integration
 
 ## 📚 Documentation
 
-- **[User Guide](USER_GUIDE.md)** - Complete guide for church staff
-- **[Developer Guide](DEVELOPER_GUIDE.md)** - Technical setup and development
-- **[Date & Time Configuration](TIMEZONE_CONFIGURATION.md)** - Date handling and timezone information
-- **[API Documentation](API_DOCS.md)** - Server actions and endpoints
+- **[User Guide](docs/USER_GUIDE.md)** - Complete guide for church staff
+- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Technical setup and development
+- **[Date & Time Configuration](docs/TIMEZONE_CONFIGURATION.md)** - Date handling and timezone information
+- **[API Documentation](docs/API_DOCS.md)** - Server actions and endpoints
+- **[Cleanup Job Setup](docs/CLEANUP_JOB_SETUP.md)** - Automated cleanup configuration
 
 ## 🆘 Support
 
 For technical issues or questions:
-1. Check the [User Guide](USER_GUIDE.md) for common tasks
-2. Review the [Developer Guide](DEVELOPER_GUIDE.md) for technical issues
+1. Check the [User Guide](docs/USER_GUIDE.md) for common tasks
+2. Review the [Developer Guide](docs/DEVELOPER_GUIDE.md) for technical issues
 
 ---

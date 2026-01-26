@@ -18,7 +18,7 @@ create table if not exists public.guests (
   id uuid primary key default gen_random_uuid(),
   external_guest_id uuid unique default gen_random_uuid(),
   text_callback_reference_id INTEGER unique,
-  status text not null default 'pending_pre_approval',
+  status text not null default 'pending',
   first_name text not null,
   last_name text not null,
   phone text not null,

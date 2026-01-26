@@ -127,17 +127,10 @@ export function GuestListing({
                 <p className="text-sm text-gray-600 hidden sm:block">{getRelativeTime(submission.submittedAt)}</p>
                 
                 {/* Status badges */}
-                {submission.status === 'pending_pre_approval' && (
+                {submission.status === 'pending' && (
                   <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200">
                     <Clock className="w-3 h-3 mr-1" />
-                    Pre-Approval
-                  </Badge>
-                )}
-                
-                {submission.status === 'pending' && (
-                  <Badge className="bg-blue-50 text-blue-800 border border-blue-200">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Pending
+                    Awaiting Approval
                   </Badge>
                 )}
                 
@@ -152,13 +145,6 @@ export function GuestListing({
                   <Badge className="bg-red-50 text-red-800 border border-red-200">
                     <XCircle className="w-3 h-3 mr-1" />
                     Denied
-                  </Badge>
-                )}
-                
-                {submission.status === 'pre_approval_denied' && (
-                  <Badge className="bg-red-50 text-red-800 border border-red-200">
-                    <XCircle className="w-3 h-3 mr-1" />
-                    Pre-Approval Denied
                   </Badge>
                 )}
               </div>

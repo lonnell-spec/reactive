@@ -10,6 +10,7 @@ import { fileToBuffer, generateProfilePicturePath, uploadChildPhoto, prepareProf
 import { mapFormDataToGuestRecord, mapChildInfoToRecord, createGuestProfileUpdateRecord, createChildPhotoUpdateRecord } from './database-utils';
 import { calculateExpiryFromVisitDate } from './date-timezone-utils';
 import { generateUniqueRandom9DigitInteger } from './random-utils';
+import { validateTurnstileToken } from './turnstile';
 
 
 /**
@@ -53,6 +54,30 @@ export async function submitGuestForm(
         message: 'Server received empty form data. This may be a Next.js Server Action issue with large files.'
       }
     }
+
+    // Extract and validate Turnstile token FIRST (before any other processing)
+    const turnstileToken = formData.get('cf-turnstile-response') as string | null
+    
+    if (!turnstileToken) {
+      console.error('Turnstile token missing from form submission')
+      return {
+        success: false,
+        message: 'Verification token missing. Please refresh the page and try again.'
+      }
+    }
+
+    // Validate the Turnstile token with Cloudflare
+    const turnstileResult = await validateTurnstileToken(turnstileToken)
+    
+    if (!turnstileResult.success) {
+      console.error('Turnstile validation failed:', turnstileResult.error, turnstileResult.errorCodes)
+      return {
+        success: false,
+        message: turnstileResult.error || 'Verification failed. Please try again.'
+      }
+    }
+
+    console.log('Turnstile validation successful')
 
     const parsedData = await parseAndValidate(formData);
 

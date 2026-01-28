@@ -20,12 +20,14 @@ import { ChildrenInformationSection } from './forms/sections/ChildrenInformation
 import { VehicleInformationSection } from './forms/sections/VehicleInformationSection'
 import { AdditionalInformationSection } from './forms/sections/AdditionalInformationSection'
 import { CompressionProvider, useCompression } from './forms/CompressionContext'
+import { Turnstile } from './ui/turnstile'
 
 function GuestFormInner() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [submissionId, setSubmissionId] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState<string>('')
   const { isAnyCompressing } = useCompression()
   
   // Initialize React Hook Form with proper typing
@@ -56,6 +58,12 @@ function GuestFormInner() {
     // Prevent submission during compression
     if (isAnyCompressing) {
       setError('Please wait for image compression to complete before submitting.')
+      return
+    }
+
+    // Verify Turnstile token is present
+    if (!turnstileToken) {
+      setError('Please complete the verification challenge before submitting.')
       return
     }
     
@@ -110,6 +118,9 @@ function GuestFormInner() {
       // Append as a single JSON string
       formData.append('formData', JSON.stringify(textData))
       
+      // Add Turnstile token
+      formData.append('cf-turnstile-response', turnstileToken)
+      
       // Add profile picture
       formData.append('profilePicture', data.profilePicture!)
 
@@ -157,6 +168,8 @@ function GuestFormInner() {
       setSuccess(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
+      // Reset Turnstile token on error so user must verify again
+      setTurnstileToken('')
     } finally {
       setLoading(false)
     }
@@ -220,6 +233,18 @@ function GuestFormInner() {
                   <VehicleInformationSection />
                   <AdditionalInformationSection />
 
+                  {/* Turnstile verification widget */}
+                  <AnimatedSection delay={0.5}>
+                    <Turnstile
+                      siteKey={process.env.NEXT_PUBLIC_CLOUDFLARE_SITE_KEY || ''}
+                      onSuccess={(token) => setTurnstileToken(token)}
+                      onError={() => setTurnstileToken('')}
+                      onExpire={() => setTurnstileToken('')}
+                      theme="auto"
+                      size="normal"
+                    />
+                  </AnimatedSection>
+
                   <AnimatedSection delay={0.6}>
                     <motion.div
                       whileHover={{ scale: 1.02 }}
@@ -228,7 +253,7 @@ function GuestFormInner() {
                       <Button 
                         type="submit" 
                         className="w-full bg-red-600 hover:bg-red-700 text-white text-2xl py-8 border-2 border-red-800 shadow-lg text-[20px]"
-                        disabled={loading || isAnyCompressing}
+                        disabled={loading || isAnyCompressing || !turnstileToken}
                       >
                         {loading ? (
                           <motion.div
@@ -240,6 +265,8 @@ function GuestFormInner() {
                           </motion.div>
                         ) : isAnyCompressing ? (
                           'Compressing Images...'
+                        ) : !turnstileToken ? (
+                          'Complete Verification to Submit'
                         ) : (
                           'Submit Guest Registration'
                         )}

@@ -14,15 +14,29 @@ interface GuestInfo {
   status: GuestStatus;
 }
 
+interface ChildInfo {
+  name: string;
+  dob?: string | null;
+}
+
+/**
+ * Calculates age in years from a date of birth string
+ */
+function calculateAge(dob: string): number | null {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  if (isNaN(birthDate.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age >= 0 ? age : null;
+}
+
 /**
  * Formats a pre-approver notification message
- * Pure function for testability
- * 
- * @param guest Guest information
- * @param deepLinkUrl URL for the admin deep link
- * @param approvalUrl URL for the approval action
- * @param denialUrl URL for the denial action
- * @returns Formatted message string
  */
 export async function formatPreApproverMessage(
   guest: GuestInfo,
@@ -52,16 +66,16 @@ Guest details at: ${deepLinkUrl}
 }
 
 /**
- * Formats an admin approval notification message (no action links)
- * Pure function for testability
- * 
- * @param guest Guest information
- * @param deepLinkUrl URL for deep link to a guest detail
- * @returns Formatted message string
+ * Formats an admin approval notification message with full guest details,
+ * Formation Kids info, children ages, and photo link.
  */
 export async function formatAdminApprovalMessage(
-  guest: GuestInfo,
-  deepLinkUrl: string
+  guest: any,
+  deepLinkUrl: string,
+  options?: {
+    children?: ChildInfo[];
+    photoUrl?: string;
+  }
 ): Promise<string> {
   if (!guest || !deepLinkUrl) {
     throw new Error('Guest information and deep link URL are required');
@@ -69,26 +83,49 @@ export async function formatAdminApprovalMessage(
 
   const formattedDate = await formatDateString(guest.visit_date);
 
+  // Build vehicle line
+  const vehicleParts = [
+    guest.vehicle_color,
+    guest.vehicle_make,
+    guest.vehicle_model,
+  ].filter(Boolean);
+  const vehicleLine = vehicleParts.length > 0
+    ? `${guest.vehicle_type ? guest.vehicle_type + ' — ' : ''}${vehicleParts.join(' ')}`
+    : guest.vehicle_type || 'Not provided';
+
+  // Build Formation Kids section
+  const hasKids = guest.should_enroll_children === true;
+  let kidsSection = `Formation Kids: ${hasKids ? 'Yes' : 'No'}`;
+
+  if (hasKids && options?.children && options.children.length > 0) {
+    const childLines = options.children.map((child, i) => {
+      const age = child.dob ? calculateAge(child.dob) : null;
+      const ageStr = age !== null ? `, Age ${age}` : '';
+      return `  -> Child ${i + 1}: ${child.name}${ageStr}`;
+    });
+    kidsSection += '\n' + childLines.join('\n');
+  }
+
+  // Build photo line
+  const photoLine = options?.photoUrl
+    ? `\nGuest photo: ${options.photoUrl}`
+    : '';
+
   return `
-Guest registration approved:
-Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
-Visit Date: ${formattedDate}
-Time: ${guest.gathering_time}
-Guests: ${guest.total_guests}
+APPROVED - Friends of the House
+Name: ${guest.first_name} ${guest.last_name}
+Visit: ${formattedDate} @ ${guest.gathering_time}
+Party of: ${guest.total_guests}
+Phone: ${guest.phone || 'Not provided'}
+Vehicle: ${vehicleLine}
+${kidsSection}${photoLine}
 
-Guest has been approved and notified.
-
-View guest details: ${deepLinkUrl}
+View full record: ${deepLinkUrl}
 `.trim();
 }
 
 /**
  * Formats an admin denial notification message (no action links)
- * Pure function for testability
- * 
- * @param guest Guest information
- * @param deepLinkUrl URL for deep link to a guest detail
- * @returns Formatted message string
  */
 export async function formatAdminDenialMessage(
   guest: GuestInfo,
@@ -114,12 +151,7 @@ View guest details: ${deepLinkUrl}
 }
 
 /**
- * Formats an approval notification message
- * Pure function for testability
- * 
- * @param guest Guest information
- * @param passUrl URL for guest pass
- * @returns Formatted message string
+ * Formats an approval notification message for the guest
  */
 export async function formatApprovalMessage(
   guest: GuestInfo,

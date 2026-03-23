@@ -30,7 +30,6 @@ function GuestFormInner() {
   const [turnstileToken, setTurnstileToken] = useState<string>('')
   const { isAnyCompressing } = useCompression()
   
-  // Initialize React Hook Form with proper typing
   const methods = useForm<GuestFormData>({
     resolver: zodResolver(guestFormSchema) as any,
     defaultValues: {
@@ -53,21 +52,17 @@ function GuestFormInner() {
     }
   });
 
-  // Form submission handler using React Hook Form with explicit typing
   const onSubmit: SubmitHandler<GuestFormData> = async (data) => {
-    // Prevent submission during compression
     if (isAnyCompressing) {
       setError('Please wait for image compression to complete before submitting.')
       return
     }
 
-    // Verify Turnstile token is present
     if (!turnstileToken) {
       setError('Please complete the verification challenge before submitting.')
       return
     }
     
-    // Validate files before creating FormData
     if (data.profilePicture) {
       if (!(data.profilePicture instanceof File) || data.profilePicture.size === 0) {
         setError('Profile picture is invalid. Please try uploading again.')
@@ -88,10 +83,8 @@ function GuestFormInner() {
     setError('')
     
     try {
-      // Create FormData structure for server submission
       let formData = new FormData()
       
-      // Create a single JSON payload for all text data
       const textData = {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -115,29 +108,21 @@ function GuestFormInner() {
         additionalNotes: data.additionalNotes || ''
       }
       
-      // Append as a single JSON string
       formData.append('formData', JSON.stringify(textData))
-      
-      // Add Turnstile token
       formData.append('cf-turnstile-response', turnstileToken)
-      
-      // Add profile picture
       formData.append('profilePicture', data.profilePicture!)
 
-      // Add child photos
       data.childrenInfo.forEach((child, index) => {
         if (child.photo) {
           formData.append(`childPhoto_${index}`, child.photo)
         }
       })
 
-      // Validate FormData before submission
       const entriesCount = Array.from(formData.entries()).length
       if (entriesCount === 0) {
         throw new Error('FormData is empty before submission - this indicates a client-side issue')
       }
 
-      // Submit the form using the server action with retry logic for dev server issues
       let result = await submitGuestForm(formData)
       let retryCount = 0
       const maxRetries = 2
@@ -146,7 +131,6 @@ function GuestFormInner() {
         retryCount++
         await new Promise(resolve => setTimeout(resolve, 500))
         
-        // Recreate FormData for retry (in case of corruption)
         const retryFormData = new FormData()
         retryFormData.append('formData', JSON.stringify(textData))
         retryFormData.append('profilePicture', data.profilePicture!)
@@ -168,7 +152,6 @@ function GuestFormInner() {
       setSuccess(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-      // Reset Turnstile token on error so user must verify again
       setTurnstileToken('')
     } finally {
       setLoading(false)
@@ -201,7 +184,7 @@ function GuestFormInner() {
           </motion.div>
           <AnimatedText 
             text="Friends of the House Registration"
-            className="text-2xl text-gray-600 font-bold"
+            className="text-3xl text-gray-600 font-bold"
             delay={0.5}
           />
         </AnimatedSection>

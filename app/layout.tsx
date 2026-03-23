@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
-  title: 'PAM Special Guest Registration',
-  description: 'PAM Special Guest Registration',
+  title: 'Friends of the House Registration',
+  description: 'Friends of the House Registration',
 }
 
 export default function RootLayout({
@@ -26,5 +26,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-

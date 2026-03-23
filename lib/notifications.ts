@@ -8,10 +8,6 @@ import { generateDeepLinkUrl, generatePassViewUrl, generateApprovalUrl, generate
 
 /**
  * Retrieves phone numbers for users with a specific role
- * Private function for internal use only
- * 
- * @param role The user role to filter by (e.g., 'pre_approver', 'admin')
- * @returns Array of phone numbers
  */
 async function getPhoneNumbersByRole(role: string, fallbackRole: string | undefined = undefined): Promise<string[]> {
   let phoneNumbers: string[] = [];
@@ -19,7 +15,6 @@ async function getPhoneNumbersByRole(role: string, fallbackRole: string | undefi
   const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS === 'true';
   
   if (useActualPhones) {
-    // Get phone numbers from authorized users with the specified role
     const supabaseService = await getSupabaseServiceClient();
     const { data: users, error: usersError } = await supabaseService.auth.admin.listUsers();
     
@@ -27,10 +22,8 @@ async function getPhoneNumbersByRole(role: string, fallbackRole: string | undefi
       throw new Error(`Failed to get users: ${usersError.message}`);
     }
     
-    // Filter users with the specified role and extract phone numbers
     phoneNumbers = users.users
       .filter(user => {
-        // Check both array-based roles and legacy single role
         const appRoles = user.app_metadata?.roles || []
         const userRoles = user.user_metadata?.roles || []
         const legacyAppRole = user.app_metadata?.role
@@ -46,11 +39,9 @@ async function getPhoneNumbersByRole(role: string, fallbackRole: string | undefi
       .map(user => user.user_metadata?.phone)
       .filter((phone): phone is string => phone !== undefined && phone !== null && phone.trim().length > 0);
 
-    // If no phone numbers found and fallback role is provided, try fallback role
     if (phoneNumbers.length === 0 && fallbackRole) {
       phoneNumbers = users.users
         .filter(user => {
-          // Check both array-based roles and legacy single role for fallback
           const appRoles = user.app_metadata?.roles || []
           const userRoles = user.user_metadata?.roles || []
           const legacyAppRole = user.app_metadata?.role
@@ -67,7 +58,6 @@ async function getPhoneNumbersByRole(role: string, fallbackRole: string | undefi
         .filter((phone): phone is string => phone !== undefined && phone !== null && phone.trim().length > 0);
     }
   } else {
-    // Use test phone numbers from environment variable
     const testPhones = process.env.NOTIFICATION_TEST_PHONE_NUMBERS;
     if (testPhones) {
       phoneNumbers = testPhones
@@ -83,12 +73,6 @@ async function getPhoneNumbersByRole(role: string, fallbackRole: string | undefi
 
 /**
  * Sends SMS messages to multiple phone numbers
- * Private function for internal use only
- * 
- * @param phoneNumbers Array of phone numbers to send to
- * @param message The message to send
- * @param textCallbackReferenceId Optional reference ID for SMS callbacks
- * @returns Object with success status and count of successful sends
  */
 async function sendSMSToMultipleNumbers(
   phoneNumbers: string[], 
@@ -129,7 +113,6 @@ async function sendSMSToMultipleNumbers(
 export async function sendPreApproverNotification(guestId: string) {
   try {
     const supabaseService = await getSupabaseServiceClient();
-    // Get the guest information from Supabase
     const { data: guest, error: guestError } = await supabaseService
       .from('guests')
       .select('*')
@@ -140,7 +123,6 @@ export async function sendPreApproverNotification(guestId: string) {
       throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
     }
     
-    // Get phone numbers and email addresses for pre-approvers using the extracted functions
     const phoneNumbers = await getPhoneNumbersByRole('pre_approver', 'admin');
     
     if (phoneNumbers.length === 0) {
@@ -148,22 +130,18 @@ export async function sendPreApproverNotification(guestId: string) {
       return false;
     }
     
-    // Format the message using pure utility function
     const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
     const approvalUrl = await generateApprovalUrl(guest.text_callback_reference_id);
     const denialUrl = await generateDenialUrl(guest.text_callback_reference_id);
     const message = await formatPreApproverMessage(guest, deepLinkUrl, approvalUrl, denialUrl);
 
-    // Send SMS and Email to all recipients using the extracted functions
     let smsSuccess = false;
-    let emailSuccess = false;
 
     if (phoneNumbers.length > 0) {
       const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
       smsSuccess = smsResult.success;
     }
     
-    // Return true if SMS was sent successfully
     return smsSuccess;
   } catch (error) {
     console.error(`[sendPreApproverNotification] Failed to send pre-approver notification for guest ${guestId}:`, error);
@@ -173,12 +151,14 @@ export async function sendPreApproverNotification(guestId: string) {
 
 
 /**
- * Sends an informational notification to admins when a guest is approved
- * This is for informational purposes only - no action links included
+ * Sends an informational notification to admins when a guest is approved.
+ * Includes: full name, visit details, phone, vehicle, Formation Kids enrollment,
+ * children names + ages (if enrolled), and a 1-hour signed guest photo link.
  */
 export async function sendAdminApprovalNotification(guestId: string) {
   try {
     const supabaseService = await getSupabaseServiceClient();
+
     // Get the guest information from Supabase
     const { data: guest, error: guestError } = await supabaseService
       .from('guests')
@@ -190,7 +170,7 @@ export async function sendAdminApprovalNotification(guestId: string) {
       throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
     }
     
-    // Get phone numbers for admins using the extracted functions
+    // Get phone numbers for admins
     const phoneNumbers = await getPhoneNumbersByRole('admin');
     
     if (phoneNumbers.length === 0) {
@@ -199,19 +179,40 @@ export async function sendAdminApprovalNotification(guestId: string) {
     }
 
     const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
-    // Format the message using pure utility function (no action links)
-    const message = await formatAdminApprovalMessage(guest, deepLinkUrl);
 
-    // Send SMS to all recipients using the extracted functions
-    let smsSuccess = false;
-
-    if (phoneNumbers.length > 0) {
-      const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
-      smsSuccess = smsResult.success;
+    // Fetch children if Formation Kids is enrolled
+    let children: { name: string; dob?: string | null }[] = [];
+    if (guest.should_enroll_children === true) {
+      const { data: childRows, error: childError } = await supabaseService
+        .from('guest_children')
+        .select('name, dob')
+        .eq('guest_id', guestId);
+      if (!childError && childRows) {
+        children = childRows;
+      }
     }
-    
-    // Return true if SMS was sent successfully
-    return smsSuccess;
+
+    // Generate signed guest photo URL (1-hour expiry)
+    let photoUrl: string | undefined;
+    if (guest.photo_path) {
+      const { data: signedData } = await supabaseService.storage
+        .from('guest-photos')
+        .createSignedUrl(guest.photo_path, 3600);
+      if (signedData?.signedUrl) {
+        photoUrl = signedData.signedUrl;
+      }
+    }
+
+    // Format the enriched message
+    const message = await formatAdminApprovalMessage(guest, deepLinkUrl, {
+      children,
+      photoUrl,
+    });
+
+    // Send SMS to all admin recipients
+    const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
+    return smsResult.success;
+
   } catch (error) {
     console.error(`[sendAdminApprovalNotification] Failed to send admin approval notification for guest ${guestId}:`, error);
     return false;
@@ -220,12 +221,10 @@ export async function sendAdminApprovalNotification(guestId: string) {
 
 /**
  * Sends an informational notification to admins when a guest is denied
- * This is for informational purposes only - no action links included
  */
 export async function sendAdminDenialNotification(guestId: string) {
   try {
     const supabaseService = await getSupabaseServiceClient();
-    // Get the guest information from Supabase
     const { data: guest, error: guestError } = await supabaseService
       .from('guests')
       .select('*')
@@ -236,7 +235,6 @@ export async function sendAdminDenialNotification(guestId: string) {
       throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
     }
     
-    // Get phone numbers for admins using the extracted functions
     const phoneNumbers = await getPhoneNumbersByRole('admin');
     
     if (phoneNumbers.length === 0) {
@@ -245,10 +243,8 @@ export async function sendAdminDenialNotification(guestId: string) {
     }
 
     const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
-    // Format the message using pure utility function (no action links)
     const message = await formatAdminDenialMessage(guest, deepLinkUrl);
 
-    // Send SMS to all recipients using the extracted functions
     let smsSuccess = false;
 
     if (phoneNumbers.length > 0) {
@@ -256,7 +252,6 @@ export async function sendAdminDenialNotification(guestId: string) {
       smsSuccess = smsResult.success;
     }
     
-    // Return true if SMS was sent successfully
     return smsSuccess;
   } catch (error) {
     console.error(`[sendAdminDenialNotification] Failed to send admin denial notification for guest ${guestId}:`, error);
@@ -276,7 +271,6 @@ export async function notifyGuestOfApproval(guestId: string) {
       };
     }
 
-    // Get the guest details from Supabase
     const supabaseService = await getSupabaseServiceClient();
     
     const { data: guest, error: guestError } = await supabaseService
@@ -290,19 +284,14 @@ export async function notifyGuestOfApproval(guestId: string) {
     }
 
     const passViewUrl = await generatePassViewUrl(guest.pass_id);
-    
-    // Format the message
     const message = await formatApprovalMessage(guest, passViewUrl);
 
-    // Send SMS notification
     let smsSuccess = false;
     let smsError = '';
 
     const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS?.toLowerCase() === 'true';
 
-    // Send SMS
     if (useActualPhones) {
-      // Send to actual guest phone
       if (guest.phone) {
         const { success, error } = await sendTextMagicSMS({
           phone: guest.phone,
@@ -314,7 +303,6 @@ export async function notifyGuestOfApproval(guestId: string) {
         }
       }
     } else {
-      // Send to test phone numbers
       const testPhones = process.env.NOTIFICATION_TEST_PHONE_NUMBERS;
       if (testPhones) {
         const phoneNumbers = testPhones
@@ -330,7 +318,6 @@ export async function notifyGuestOfApproval(guestId: string) {
       }
     }
 
-    // If SMS failed, throw an error
     if (!smsSuccess) {
       const errors = [];
       if (smsError) errors.push(`SMS: ${smsError}`);
@@ -338,7 +325,6 @@ export async function notifyGuestOfApproval(guestId: string) {
       throw new Error(`Failed to send notifications: ${errors.join(', ')}`);
     }
     
-    // Build success message
     const successMethods = [];
     if (smsSuccess) {
       if (useActualPhones && guest.phone) {

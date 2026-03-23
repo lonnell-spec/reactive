@@ -200,7 +200,7 @@ function GuestFormInner() {
             />
           </motion.div>
           <AnimatedText 
-            text="Pastor Philip Anthony Mitchell's Guest Registration"
+            text="Friends of the House Registration"
             className="text-2xl text-gray-600 font-bold"
             delay={0.5}
           />
@@ -268,7 +268,7 @@ function GuestFormInner() {
                         ) : !turnstileToken ? (
                           'Complete Verification to Submit'
                         ) : (
-                          'Submit Guest Registration'
+                          'Submit Registration'
                         )}
                       </Button>
                     </motion.div>
@@ -282,7 +282,7 @@ function GuestFormInner() {
         {/* Footer */}
         <AnimatedSection delay={0.7} className="text-center mt-12">
           <p className="text-xl text-gray-500">
-            2819 Church Guest Registration System
+            2819 Church Friends of the House Registration System
           </p>
           <p className="text-lg text-red-600 mt-4 font-medium">
             Sharing this private link is prohibited and can prevent guests from being approved in the future.
@@ -300,4 +300,3 @@ export function GuestForm() {
     </CompressionProvider>
   )
 }
-

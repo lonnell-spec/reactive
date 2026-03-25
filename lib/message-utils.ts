@@ -152,7 +152,7 @@ View guest details: ${deepLinkUrl}
 
 /**
  * Formats an approval notification message for the guest.
- * Includes arrival instructions, parking info, code word, and pass link.
+ * Includes arrival instructions, parking info, and pass link.
  */
 export async function formatApprovalMessage(
   guest: any,
@@ -183,6 +183,52 @@ Your pass: ${passUrl}
 
 Your Hospitality Host will text you Sunday morning with any additional details. See you soon.
 `.trim();
+}
+
+/**
+ * Formats the Sunday morning hospitality host digest.
+ * Groups approved guests by gathering time, showing name, party size, and vehicle.
+ */
+export async function formatHospitalityHostDigest(
+  guests: any[],
+  sundayDate: string
+): Promise<string> {
+  if (!guests || guests.length === 0) {
+    return `2819 Friends of the House — ${sundayDate}\n\nNo guests registered for today.`;
+  }
+
+  const formattedDate = await formatDateString(sundayDate);
+
+  // Group guests by gathering time
+  const byTime: Record<string, any[]> = {};
+  for (const guest of guests) {
+    const time = guest.gathering_time || 'Unspecified';
+    if (!byTime[time]) byTime[time] = [];
+    byTime[time].push(guest);
+  }
+
+  // Sort gathering times chronologically
+  const sortedTimes = Object.keys(byTime).sort();
+
+  let lines: string[] = [`2819 Friends of the House — ${formattedDate}`, ''];
+
+  let counter = 1;
+  for (const time of sortedTimes) {
+    lines.push(`${time}`);
+    for (const guest of byTime[time]) {
+      const vehicleParts = [guest.vehicle_color, guest.vehicle_make, guest.vehicle_model].filter(Boolean);
+      const vehicle = vehicleParts.length > 0
+        ? `${guest.vehicle_type ? guest.vehicle_type + ' — ' : ''}${vehicleParts.join(' ')}`
+        : guest.vehicle_type || 'Vehicle not provided';
+      lines.push(`${counter}. ${guest.first_name} ${guest.last_name} | Party of ${guest.total_guests} | ${vehicle}`);
+      counter++;
+    }
+    lines.push('');
+  }
+
+  lines.push(`Total: ${guests.length} guest${guests.length !== 1 ? 's' : ''}`);
+
+  return lines.join('\n').trim();
 }
 
 import { GuestStatus } from './types';

@@ -151,10 +151,11 @@ View guest details: ${deepLinkUrl}
 }
 
 /**
- * Formats an approval notification message for the guest
+ * Formats an approval notification message for the guest.
+ * Includes arrival instructions, parking info, code word, and pass link.
  */
 export async function formatApprovalMessage(
-  guest: GuestInfo,
+  guest: any,
   passUrl: string
 ): Promise<string> {
   if (!guest || !passUrl) {
@@ -164,16 +165,23 @@ export async function formatApprovalMessage(
   const formattedDate = await formatDateString(guest.visit_date);
 
   return `
-Great news! Your guest registration has been approved.
+Your registration has been approved.
+You are a Friend of the House.
 
 Visit Details:
 Date: ${formattedDate}
 Time: ${guest.gathering_time}
-Guests: ${guest.total_guests}
+Party of: ${guest.total_guests}
 
-Your guest pass: ${passUrl}
+Arrival Instructions:
+- Arrive 25 minutes before The Gathering
+- At the security gate, turn on your flashers
+- Tell the host: "I am a Friend of the House"
+- You will park in X Lot
 
-Please save this link - you'll need it for check-in.
+Your pass: ${passUrl}
+
+Your Hospitality Host will text you Sunday morning with any additional details. See you soon.
 `.trim();
 }
 

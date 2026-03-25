@@ -152,14 +152,12 @@ export async function sendPreApproverNotification(guestId: string) {
 
 /**
  * Sends an informational notification to admins when a guest is approved.
- * Includes: full name, visit details, phone, vehicle, Formation Kids enrollment,
- * children names + ages (if enrolled), and a 1-hour signed guest photo link.
+ * Includes full guest details, Formation Kids info, children ages, and photo link.
  */
 export async function sendAdminApprovalNotification(guestId: string) {
   try {
     const supabaseService = await getSupabaseServiceClient();
 
-    // Get the guest information from Supabase
     const { data: guest, error: guestError } = await supabaseService
       .from('guests')
       .select('*')
@@ -170,7 +168,6 @@ export async function sendAdminApprovalNotification(guestId: string) {
       throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
     }
     
-    // Get phone numbers for admins
     const phoneNumbers = await getPhoneNumbersByRole('admin');
     
     if (phoneNumbers.length === 0) {
@@ -180,7 +177,6 @@ export async function sendAdminApprovalNotification(guestId: string) {
 
     const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
 
-    // Fetch children if Formation Kids is enrolled
     let children: { name: string; dob?: string | null }[] = [];
     if (guest.should_enroll_children === true) {
       const { data: childRows, error: childError } = await supabaseService
@@ -192,7 +188,6 @@ export async function sendAdminApprovalNotification(guestId: string) {
       }
     }
 
-    // Generate signed guest photo URL (1-hour expiry)
     let photoUrl: string | undefined;
     if (guest.photo_path) {
       const { data: signedData } = await supabaseService.storage
@@ -203,13 +198,11 @@ export async function sendAdminApprovalNotification(guestId: string) {
       }
     }
 
-    // Format the enriched message
     const message = await formatAdminApprovalMessage(guest, deepLinkUrl, {
       children,
       photoUrl,
     });
 
-    // Send SMS to all admin recipients
     const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message, guest.text_callback_reference_id);
     return smsResult.success;
 
@@ -344,5 +337,59 @@ export async function notifyGuestOfApproval(guestId: string) {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to send approval notification'
     };
+  }
+}
+
+/**
+ * Sends the Sunday 6 AM hospitality host digest to Ernest, Demetria, and Jermaine.
+ * Lists all approved guests for the current Sunday grouped by gathering time.
+ */
+export async function sendHospitalityHostDigest(): Promise<boolean> {
+  try {
+    const supabaseService = await getSupabaseServiceClient();
+
+    // Get today's date in ET (America/New_York)
+    const now = new Date();
+    const etDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(now);
+
+    // Fetch all approved guests for today
+    const { data: guests, error } = await supabaseService
+      .from('guests')
+      .select('first_name, last_name, gathering_time, total_guests, vehicle_type, vehicle_color, vehicle_make, vehicle_model')
+      .eq('visit_date', etDate)
+      .eq('status', 'approved')
+      .order('gathering_time', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch guests: ${error.message}`);
+    }
+
+    // Format the digest message
+    const { formatHospitalityHostDigest } = await import('./message-utils');
+    const message = await formatHospitalityHostDigest(guests || [], etDate);
+
+    // Fixed hospitality host numbers: Ernest, Demetria, Jermaine
+    const hospitalityHosts = [
+      '7062888390', // Ernest
+      '6782628386', // Demetria
+      '4706593616', // Jermaine
+    ];
+
+    // Send to each host individually
+    let successCount = 0;
+    for (const phone of hospitalityHosts) {
+      const { success } = await sendTextMagicSMS({ phone, message });
+      if (success) successCount++;
+    }
+
+    console.log(`[sendHospitalityHostDigest] Sent to ${successCount}/${hospitalityHosts.length} hosts for ${etDate}`);
+    return successCount > 0;
+
+  } catch (error) {
+    console.error('[sendHospitalityHostDigest] Failed:', error);
+    return false;
   }
 }

@@ -174,8 +174,9 @@ export async function notifyGuestOfApproval(guestId: string) {
 
 /**
  * Sends the Sunday 6 AM hospitality host digest.
- * Includes Formation Kids enrollment, child count, and signed photo link per guest.
- * THROWS on error (caller is responsible for catching).
+ * Includes Formation Kids enrollment, child count, and a short photo link per guest.
+ * Photo links use /view/[guestId]/photo to stay under SMS character limits.
+ * THROWS on error — caller is responsible for catching.
  */
 export async function sendHospitalityHostDigest(): Promise<boolean> {
   const supabaseService = await getSupabaseServiceClient();
@@ -187,7 +188,7 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
 
   const { data: guests, error } = await supabaseService
     .from('guests')
-    .select('id, first_name, last_name, gathering_time, total_guests, vehicle_type, vehicle_color, vehicle_make, vehicle_model, should_enroll_children, photo_path')
+    .select('id, external_guest_id, first_name, last_name, gathering_time, total_guests, vehicle_type, vehicle_color, vehicle_make, vehicle_model, should_enroll_children, photo_path')
     .eq('visit_date', etDate)
     .eq('status', 'approved')
     .order('gathering_time', { ascending: true });
@@ -209,7 +210,7 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
     return true;
   }
 
-  // Enrich each guest with child count and signed photo URL
+  // Enrich each guest with child count and short photo URL
   const enrichedGuests = await Promise.all(guests.map(async (guest) => {
     let child_count = 0;
     let photo_url: string | undefined;
@@ -219,9 +220,9 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
       child_count = children?.length || 0;
     }
 
-    if (guest.photo_path) {
-      const { data: signedData } = await supabaseService.storage.from('guest-photos').createSignedUrl(guest.photo_path, 3600);
-      if (signedData?.signedUrl) photo_url = signedData.signedUrl;
+    // Use short internal redirect instead of full signed URL to stay under SMS limit
+    if (guest.photo_path && guest.external_guest_id) {
+      photo_url = `https://www.pamspecialguest2819.com/view/${guest.external_guest_id}/photo`;
     }
 
     return { ...guest, child_count, photo_url };

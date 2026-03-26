@@ -175,71 +175,67 @@ export async function notifyGuestOfApproval(guestId: string) {
 /**
  * Sends the Sunday 6 AM hospitality host digest.
  * Includes Formation Kids enrollment, child count, and signed photo link per guest.
+ * THROWS on error (caller is responsible for catching).
  */
 export async function sendHospitalityHostDigest(): Promise<boolean> {
-  try {
-    const supabaseService = await getSupabaseServiceClient();
-    const now = new Date();
-    const etDate = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/New_York',
-      year: 'numeric', month: '2-digit', day: '2-digit'
-    }).format(now);
+  const supabaseService = await getSupabaseServiceClient();
+  const now = new Date();
+  const etDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(now);
 
-    const { data: guests, error } = await supabaseService
-      .from('guests')
-      .select('id, first_name, last_name, gathering_time, total_guests, vehicle_type, vehicle_color, vehicle_make, vehicle_model, should_enroll_children, photo_path')
-      .eq('visit_date', etDate)
-      .eq('status', 'approved')
-      .order('gathering_time', { ascending: true });
+  const { data: guests, error } = await supabaseService
+    .from('guests')
+    .select('id, first_name, last_name, gathering_time, total_guests, vehicle_type, vehicle_color, vehicle_make, vehicle_model, should_enroll_children, photo_path')
+    .eq('visit_date', etDate)
+    .eq('status', 'approved')
+    .order('gathering_time', { ascending: true });
 
-    if (error) throw new Error(`Failed to fetch guests: ${error.message}`);
+  if (error) throw new Error(`Failed to fetch guests: ${error.message}`);
 
-    const hospitalityHosts = [
-      '7062888390', // Ernest
-      '8654069855', // Ashley
-      '8179642462', // Jatona
-      '6099370946', // Lonnell
-      '6782628386', // Demetria
-      '4706593616', // Jermaine
-    ];
+  const hospitalityHosts = [
+    '7062888390', // Ernest
+    '8654069855', // Ashley
+    '8179642462', // Jatona
+    '6099370946', // Lonnell
+    '6782628386', // Demetria
+    '4706593616', // Jermaine
+  ];
 
-    if (!guests || guests.length === 0) {
-      const message = await formatHospitalityHostDigest([], etDate);
-      for (const phone of hospitalityHosts) await sendTextMagicSMS({ phone, message });
-      return true;
-    }
-
-    // Enrich each guest with child count and signed photo URL
-    const enrichedGuests = await Promise.all(guests.map(async (guest) => {
-      let child_count = 0;
-      let photo_url: string | undefined;
-
-      if (guest.should_enroll_children === true) {
-        const { data: children } = await supabaseService.from('guest_children').select('id').eq('guest_id', guest.id);
-        child_count = children?.length || 0;
-      }
-
-      if (guest.photo_path) {
-        const { data: signedData } = await supabaseService.storage.from('guest-photos').createSignedUrl(guest.photo_path, 3600);
-        if (signedData?.signedUrl) photo_url = signedData.signedUrl;
-      }
-
-      return { ...guest, child_count, photo_url };
-    }));
-
-    const message = await formatHospitalityHostDigest(enrichedGuests, etDate);
-
-    let successCount = 0;
-    for (const phone of hospitalityHosts) {
-      const { success } = await sendTextMagicSMS({ phone, message });
-      if (success) successCount++;
-    }
-
-    console.log(`[sendHospitalityHostDigest] Sent to ${successCount}/${hospitalityHosts.length} hosts for ${etDate}`);
-    return successCount > 0;
-
-  } catch (error) {
-    console.error('[sendHospitalityHostDigest] Failed:', error);
-    return false;
+  if (!guests || guests.length === 0) {
+    const message = await formatHospitalityHostDigest([], etDate);
+    for (const phone of hospitalityHosts) await sendTextMagicSMS({ phone, message });
+    return true;
   }
+
+  // Enrich each guest with child count and signed photo URL
+  const enrichedGuests = await Promise.all(guests.map(async (guest) => {
+    let child_count = 0;
+    let photo_url: string | undefined;
+
+    if (guest.should_enroll_children === true) {
+      const { data: children } = await supabaseService.from('guest_children').select('id').eq('guest_id', guest.id);
+      child_count = children?.length || 0;
+    }
+
+    if (guest.photo_path) {
+      const { data: signedData } = await supabaseService.storage.from('guest-photos').createSignedUrl(guest.photo_path, 3600);
+      if (signedData?.signedUrl) photo_url = signedData.signedUrl;
+    }
+
+    return { ...guest, child_count, photo_url };
+  }));
+
+  const message = await formatHospitalityHostDigest(enrichedGuests, etDate);
+
+  let successCount = 0;
+  for (const phone of hospitalityHosts) {
+    const { success } = await sendTextMagicSMS({ phone, message });
+    if (success) successCount++;
+  }
+
+  console.log(`[sendHospitalityHostDigest] Sent to ${successCount}/${hospitalityHosts.length} hosts for ${etDate}`);
+  if (successCount === 0) throw new Error(`TextMagic failed for all ${hospitalityHosts.length} numbers`);
+  return true;
 }

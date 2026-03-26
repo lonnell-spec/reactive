@@ -83,7 +83,6 @@ export async function formatAdminApprovalMessage(
 
   const formattedDate = await formatDateString(guest.visit_date);
 
-  // Build vehicle line
   const vehicleParts = [
     guest.vehicle_color,
     guest.vehicle_make,
@@ -93,7 +92,6 @@ export async function formatAdminApprovalMessage(
     ? `${guest.vehicle_type ? guest.vehicle_type + ' — ' : ''}${vehicleParts.join(' ')}`
     : guest.vehicle_type || 'Not provided';
 
-  // Build Formation Kids section
   const hasKids = guest.should_enroll_children === true;
   let kidsSection = `Formation Kids: ${hasKids ? 'Yes' : 'No'}`;
 
@@ -106,7 +104,6 @@ export async function formatAdminApprovalMessage(
     kidsSection += '\n' + childLines.join('\n');
   }
 
-  // Build photo line
   const photoLine = options?.photoUrl
     ? `\nGuest photo: ${options.photoUrl}`
     : '';
@@ -187,7 +184,8 @@ Your Hospitality Host will text you Sunday morning with any additional details. 
 
 /**
  * Formats the Sunday morning hospitality host digest.
- * Groups approved guests by gathering time, showing name, party size, and vehicle.
+ * Groups approved guests by gathering time, showing name, party size, vehicle,
+ * Formation Kids enrollment (with child count), and a signed photo link.
  */
 export async function formatHospitalityHostDigest(
   guests: any[],
@@ -207,7 +205,6 @@ export async function formatHospitalityHostDigest(
     byTime[time].push(guest);
   }
 
-  // Sort gathering times chronologically
   const sortedTimes = Object.keys(byTime).sort();
 
   let lines: string[] = [`2819 Friends of the House — ${formattedDate}`, ''];
@@ -220,7 +217,18 @@ export async function formatHospitalityHostDigest(
       const vehicle = vehicleParts.length > 0
         ? `${guest.vehicle_type ? guest.vehicle_type + ' — ' : ''}${vehicleParts.join(' ')}`
         : guest.vehicle_type || 'Vehicle not provided';
+
+      const hasKids = guest.should_enroll_children === true;
+      const kidCount = guest.child_count || 0;
+      const kidsLine = hasKids
+        ? `Formation Kids: Yes (${kidCount} child${kidCount !== 1 ? 'ren' : ''})`
+        : `Formation Kids: No`;
+
+      const photoLine = guest.photo_url ? `Photo: ${guest.photo_url}` : null;
+
       lines.push(`${counter}. ${guest.first_name} ${guest.last_name} | Party of ${guest.total_guests} | ${vehicle}`);
+      lines.push(`   ${kidsLine}`);
+      if (photoLine) lines.push(`   ${photoLine}`);
       counter++;
     }
     lines.push('');

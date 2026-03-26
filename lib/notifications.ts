@@ -341,7 +341,7 @@ export async function notifyGuestOfApproval(guestId: string) {
 }
 
 /**
- * Sends the Sunday 6 AM hospitality host digest to Ernest, Demetria, and Jermaine.
+ * Sends the Sunday 6 AM hospitality host digest.
  * Lists all approved guests for the current Sunday grouped by gathering time.
  */
 export async function sendHospitalityHostDigest(): Promise<boolean> {
@@ -371,9 +371,12 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
     const { formatHospitalityHostDigest } = await import('./message-utils');
     const message = await formatHospitalityHostDigest(guests || [], etDate);
 
-    // Fixed hospitality host numbers: Ernest, Demetria, Jermaine
+    // Hospitality host list
     const hospitalityHosts = [
       '7062888390', // Ernest
+      '8654069855', // Ashley
+      '8179642462', // Jatona
+      '6099370946', // Lonnell
       '6782628386', // Demetria
       '4706593616', // Jermaine
     ];

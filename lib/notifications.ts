@@ -2,7 +2,7 @@
 
 import { sendTextMagicSMS, sendTextMagicEmail } from './textmagic';
 import { GuestStatus } from './types';
-import { formatApprovalMessage, formatPreApproverMessage, formatAdminApprovalMessage, formatAdminDenialMessage } from './message-utils';
+import { formatApprovalMessage, formatPreApproverMessage, formatAdminApprovalMessage, formatAdminDenialMessage, formatHospitalityHostDigest } from './message-utils';
 import { getSupabaseServiceClient } from './supabase-client';
 import { generateDeepLinkUrl, generatePassViewUrl, generateApprovalUrl, generateDenialUrl } from './guest-credentials';
 
@@ -153,7 +153,7 @@ export async function notifyGuestOfApproval(guestId: string) {
     } else {
       const testPhones = process.env.NOTIFICATION_TEST_PHONE_NUMBERS;
       if (testPhones) {
-        const phoneNumbers = testPhones.split(',').map(p => p.trim()).filter(p => p.length > 0);
+        const phoneNumbers = testPhones.split(',').map((p: string) => p.trim()).filter((p: string) => p.length > 0);
         const smsResult = await sendSMSToMultipleNumbers(phoneNumbers, message);
         smsSuccess = smsResult.success;
         if (!smsResult.success) smsError = `Failed to send to test numbers`;
@@ -202,8 +202,6 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
       '6782628386', // Demetria
       '4706593616', // Jermaine
     ];
-
-    const { formatHospitalityHostDigest } = await import('./message-utils');
 
     if (!guests || guests.length === 0) {
       const message = await formatHospitalityHostDigest([], etDate);

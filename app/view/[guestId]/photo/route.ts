@@ -9,10 +9,10 @@ import { getSupabaseServiceClient } from '@/lib/supabase-client';
  */
 export async function GET(
   request: Request,
-  { params }: { params: { guestId: string } }
+  context: { params: Promise<{ guestId: string }> }
 ) {
   try {
-    const { guestId } = params;
+    const { guestId } = await context.params;
 
     if (!guestId) {
       return NextResponse.json({ error: 'Missing guest ID' }, { status: 400 });
@@ -20,7 +20,6 @@ export async function GET(
 
     const supabaseService = await getSupabaseServiceClient();
 
-    // Look up guest by external_guest_id
     const { data: guest, error } = await supabaseService
       .from('guests')
       .select('photo_path')
@@ -31,7 +30,6 @@ export async function GET(
       return NextResponse.json({ error: 'Photo not found' }, { status: 404 });
     }
 
-    // Generate fresh signed URL (1-hour expiry)
     const { data: signedData, error: signError } = await supabaseService.storage
       .from('guest-photos')
       .createSignedUrl(guest.photo_path, 3600);
@@ -40,7 +38,6 @@ export async function GET(
       return NextResponse.json({ error: 'Could not generate photo link' }, { status: 500 });
     }
 
-    // Redirect to the signed URL
     return NextResponse.redirect(signedData.signedUrl);
 
   } catch (error) {

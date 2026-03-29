@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { sendHospitalityHostDigest } from '@/lib/notifications';
+import { sendHospitalityHostDigest, sendHospitalityHostDigestToPhone } from '@/lib/notifications';
 
 /**
  * GET /api/cron/sunday-digest
  * Triggered by Vercel Cron at 6 AM ET every Sunday (10:00 UTC).
- * Sends the hospitality host digest to all 6 hosts.
+ * Optional ?target=PHONENUMBER to send to a single number only (for testing/resends).
  */
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -12,7 +12,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const url = new URL(request.url);
+  const targetPhone = url.searchParams.get('target');
+
   try {
+    if (targetPhone) {
+      await sendHospitalityHostDigestToPhone(targetPhone);
+      return NextResponse.json({
+        success: true,
+        message: `Digest sent to ${targetPhone}`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     await sendHospitalityHostDigest();
     return NextResponse.json({
       success: true,

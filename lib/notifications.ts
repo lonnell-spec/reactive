@@ -174,8 +174,7 @@ export async function notifyGuestOfApproval(guestId: string) {
 
 /**
  * Sends the Sunday 6 AM hospitality host digest.
- * Includes Formation Kids enrollment, child count, and a short photo link per guest.
- * Photo links use /view/[guestId]/photo to stay under SMS character limits.
+ * Auto-splits into multiple SMS chunks if message exceeds 900 chars.
  * THROWS on error — caller is responsible for catching.
  */
 export async function sendHospitalityHostDigest(): Promise<boolean> {
@@ -232,13 +231,39 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
 
   const message = await formatHospitalityHostDigest(enrichedGuests, etDate);
 
-  let successCount = 0;
-  for (const phone of hospitalityHosts) {
-    const { success } = await sendTextMagicSMS({ phone, message });
-    if (success) successCount++;
+  // Split into chunks <= 900 chars (TextMagic hard limit is 918)
+  const SMS_LIMIT = 900;
+  const chunks: string[] = [];
+  if (message.length <= SMS_LIMIT) {
+    chunks.push(message);
+  } else {
+    const lines = message.split('\n');
+    let current = '';
+    for (const line of lines) {
+      const candidate = current ? current + '\n' + line : line;
+      if (candidate.length > SMS_LIMIT && current) {
+        chunks.push(current.trim());
+        current = line;
+      } else {
+        current = candidate;
+      }
+    }
+    if (current.trim()) chunks.push(current.trim());
   }
 
-  console.log(`[sendHospitalityHostDigest] Sent to ${successCount}/${hospitalityHosts.length} hosts for ${etDate}`);
+  // Send all chunks to all hosts
+  let successCount = 0;
+  for (const phone of hospitalityHosts) {
+    let phoneSuccess = true;
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks.length > 1 ? `(${i + 1}/${chunks.length}) ${chunks[i]}` : chunks[i];
+      const { success } = await sendTextMagicSMS({ phone, message: chunk });
+      if (!success) phoneSuccess = false;
+    }
+    if (phoneSuccess) successCount++;
+  }
+
+  console.log(`[sendHospitalityHostDigest] Sent ${chunks.length} chunk(s) to ${successCount}/${hospitalityHosts.length} hosts for ${etDate}`);
   if (successCount === 0) throw new Error(`TextMagic failed for all ${hospitalityHosts.length} numbers`);
   return true;
 }

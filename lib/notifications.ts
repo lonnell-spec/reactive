@@ -202,6 +202,9 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
     '6099370946', // Lonnell
     '6782628386', // Demetria
     '4706593616', // Jermaine
+    '7063808851', // Jadyn
+    '9125471585', // Tati
+    '7863192765', // Jasmine Rose
   ];
 
   if (!guests || guests.length === 0) {
@@ -220,7 +223,6 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
       child_count = children?.length || 0;
     }
 
-    // Use short internal redirect instead of full signed URL to stay under SMS limit
     if (guest.photo_path && guest.external_guest_id) {
       photo_url = `https://www.pamspecialguest2819.com/view/${guest.external_guest_id}/photo`;
     }

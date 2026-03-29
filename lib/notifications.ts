@@ -174,8 +174,8 @@ export async function notifyGuestOfApproval(guestId: string) {
 
 /**
  * Sends the Sunday 6 AM hospitality host digest.
- * Auto-splits into multiple SMS chunks if message exceeds 900 chars.
- * THROWS on error — caller is responsible for catching.
+ * Demetria (6782628386) receives an enhanced version that includes guest phone numbers.
+ * Auto-splits into chunks if message exceeds 900 chars.
  */
 export async function sendHospitalityHostDigest(): Promise<boolean> {
   const supabaseService = await getSupabaseServiceClient();
@@ -187,7 +187,7 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
 
   const { data: guests, error } = await supabaseService
     .from('guests')
-    .select('id, external_guest_id, first_name, last_name, gathering_time, total_guests, vehicle_type, vehicle_color, vehicle_make, vehicle_model, should_enroll_children, photo_path')
+    .select('id, external_guest_id, first_name, last_name, phone, gathering_time, total_guests, vehicle_type, vehicle_color, vehicle_make, vehicle_model, should_enroll_children, photo_path')
     .eq('visit_date', etDate)
     .eq('status', 'approved')
     .order('gathering_time', { ascending: true });
@@ -229,31 +229,38 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
     return { ...guest, child_count, photo_url };
   }));
 
+  // Standard message for all hosts
   const message = await formatHospitalityHostDigest(enrichedGuests, etDate);
+  // Enhanced message for Demetria — includes guest phone numbers
+  const messageWithPhones = await formatHospitalityHostDigest(enrichedGuests, etDate, { includePhone: true });
 
-  // Split into chunks <= 900 chars (TextMagic hard limit is 918)
+  const DEMETRIA = '6782628386';
   const SMS_LIMIT = 900;
-  const chunks: string[] = [];
-  if (message.length <= SMS_LIMIT) {
-    chunks.push(message);
-  } else {
-    const lines = message.split('\n');
+
+  function chunkMessage(msg: string): string[] {
+    if (msg.length <= SMS_LIMIT) return [msg];
+    const lines = msg.split('\n');
+    const result: string[] = [];
     let current = '';
     for (const line of lines) {
       const candidate = current ? current + '\n' + line : line;
       if (candidate.length > SMS_LIMIT && current) {
-        chunks.push(current.trim());
+        result.push(current.trim());
         current = line;
       } else {
         current = candidate;
       }
     }
-    if (current.trim()) chunks.push(current.trim());
+    if (current.trim()) result.push(current.trim());
+    return result;
   }
 
-  // Send all chunks to all hosts
+  const standardChunks = chunkMessage(message);
+  const demetriaChunks = chunkMessage(messageWithPhones);
+
   let successCount = 0;
   for (const phone of hospitalityHosts) {
+    const chunks = phone === DEMETRIA ? demetriaChunks : standardChunks;
     let phoneSuccess = true;
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks.length > 1 ? `(${i + 1}/${chunks.length}) ${chunks[i]}` : chunks[i];
@@ -263,7 +270,7 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
     if (phoneSuccess) successCount++;
   }
 
-  console.log(`[sendHospitalityHostDigest] Sent ${chunks.length} chunk(s) to ${successCount}/${hospitalityHosts.length} hosts for ${etDate}`);
+  console.log(`[sendHospitalityHostDigest] Sent to ${successCount}/${hospitalityHosts.length} hosts for ${etDate}`);
   if (successCount === 0) throw new Error(`TextMagic failed for all ${hospitalityHosts.length} numbers`);
   return true;
 }

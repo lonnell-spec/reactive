@@ -2,9 +2,6 @@
 
 import { formatDateString } from './date-utils';
 
-/**
- * Guest information interface for message formatting
- */
 interface GuestInfo {
   first_name: string;
   last_name: string;
@@ -19,9 +16,6 @@ interface ChildInfo {
   dob?: string | null;
 }
 
-/**
- * Calculates age in years from a date of birth string
- */
 function calculateAge(dob: string): number | null {
   if (!dob) return null;
   const birthDate = new Date(dob);
@@ -35,9 +29,6 @@ function calculateAge(dob: string): number | null {
   return age >= 0 ? age : null;
 }
 
-/**
- * Formats a pre-approver notification message
- */
 export async function formatPreApproverMessage(
   guest: GuestInfo,
   deepLinkUrl: string,
@@ -47,9 +38,7 @@ export async function formatPreApproverMessage(
   if (!guest || !deepLinkUrl || !approvalUrl || !denialUrl) {
     throw new Error('Guest information and URLs are required');
   }
-
   const formattedDate = await formatDateString(guest.visit_date);
-
   return `
 New guest registration requires pre-approval:
 Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
@@ -65,36 +54,21 @@ Guest details at: ${deepLinkUrl}
 `.trim();
 }
 
-/**
- * Formats an admin approval notification message with full guest details,
- * Formation Kids info, children ages, and photo link.
- */
 export async function formatAdminApprovalMessage(
   guest: any,
   deepLinkUrl: string,
-  options?: {
-    children?: ChildInfo[];
-    photoUrl?: string;
-  }
+  options?: { children?: ChildInfo[]; photoUrl?: string; }
 ): Promise<string> {
   if (!guest || !deepLinkUrl) {
     throw new Error('Guest information and deep link URL are required');
   }
-
   const formattedDate = await formatDateString(guest.visit_date);
-
-  const vehicleParts = [
-    guest.vehicle_color,
-    guest.vehicle_make,
-    guest.vehicle_model,
-  ].filter(Boolean);
+  const vehicleParts = [guest.vehicle_color, guest.vehicle_make, guest.vehicle_model].filter(Boolean);
   const vehicleLine = vehicleParts.length > 0
     ? `${guest.vehicle_type ? guest.vehicle_type + ' — ' : ''}${vehicleParts.join(' ')}`
     : guest.vehicle_type || 'Not provided';
-
   const hasKids = guest.should_enroll_children === true;
   let kidsSection = `Formation Kids: ${hasKids ? 'Yes' : 'No'}`;
-
   if (hasKids && options?.children && options.children.length > 0) {
     const childLines = options.children.map((child, i) => {
       const age = child.dob ? calculateAge(child.dob) : null;
@@ -103,11 +77,7 @@ export async function formatAdminApprovalMessage(
     });
     kidsSection += '\n' + childLines.join('\n');
   }
-
-  const photoLine = options?.photoUrl
-    ? `\nGuest photo: ${options.photoUrl}`
-    : '';
-
+  const photoLine = options?.photoUrl ? `\nGuest photo: ${options.photoUrl}` : '';
   return `
 APPROVED - Friends of the House
 Name: ${guest.first_name} ${guest.last_name}
@@ -121,9 +91,6 @@ View full record: ${deepLinkUrl}
 `.trim();
 }
 
-/**
- * Formats an admin denial notification message (no action links)
- */
 export async function formatAdminDenialMessage(
   guest: GuestInfo,
   deepLinkUrl: string
@@ -131,9 +98,7 @@ export async function formatAdminDenialMessage(
   if (!guest || !deepLinkUrl) {
     throw new Error('Guest information and deep link URL are required');
   }
-
   const formattedDate = await formatDateString(guest.visit_date);
-
   return `
 Guest registration denied:
 Name: ${guest.first_name} ${guest.last_name?.charAt(0)?.toUpperCase() || ''}.
@@ -147,10 +112,6 @@ View guest details: ${deepLinkUrl}
 `.trim();
 }
 
-/**
- * Formats an approval notification message for the guest.
- * Includes arrival instructions, parking info, and pass link.
- */
 export async function formatApprovalMessage(
   guest: any,
   passUrl: string
@@ -158,9 +119,7 @@ export async function formatApprovalMessage(
   if (!guest || !passUrl) {
     throw new Error('Guest information and pass URL are required');
   }
-
   const formattedDate = await formatDateString(guest.visit_date);
-
   return `
 Your registration has been approved.
 You are a Friend of the House.
@@ -184,20 +143,20 @@ Your Hospitality Host will text you Sunday morning with any additional details. 
 
 /**
  * Formats the Sunday morning hospitality host digest.
- * Groups approved guests by gathering time, showing name, party size, vehicle,
- * Formation Kids enrollment (with child count), and a signed photo link.
+ * Pass { includePhone: true } to include guest phone numbers (Demetria's version).
  */
 export async function formatHospitalityHostDigest(
   guests: any[],
-  sundayDate: string
+  sundayDate: string,
+  options?: { includePhone?: boolean }
 ): Promise<string> {
   if (!guests || guests.length === 0) {
     return `2819 Friends of the House — ${sundayDate}\n\nNo guests registered for today.`;
   }
 
   const formattedDate = await formatDateString(sundayDate);
+  const includePhone = options?.includePhone === true;
 
-  // Group guests by gathering time
   const byTime: Record<string, any[]> = {};
   for (const guest of guests) {
     const time = guest.gathering_time || 'Unspecified';
@@ -206,7 +165,6 @@ export async function formatHospitalityHostDigest(
   }
 
   const sortedTimes = Object.keys(byTime).sort();
-
   let lines: string[] = [`2819 Friends of the House — ${formattedDate}`, ''];
 
   let counter = 1;
@@ -225,8 +183,10 @@ export async function formatHospitalityHostDigest(
         : `Formation Kids: No`;
 
       const photoLine = guest.photo_url ? `Photo: ${guest.photo_url}` : null;
+      const phoneLine = includePhone && guest.phone ? `Phone: ${guest.phone}` : null;
 
       lines.push(`${counter}. ${guest.first_name} ${guest.last_name} | Party of ${guest.total_guests} | ${vehicle}`);
+      if (phoneLine) lines.push(`   ${phoneLine}`);
       lines.push(`   ${kidsLine}`);
       if (photoLine) lines.push(`   ${photoLine}`);
       counter++;
@@ -235,7 +195,6 @@ export async function formatHospitalityHostDigest(
   }
 
   lines.push(`Total: ${guests.length} guest${guests.length !== 1 ? 's' : ''}`);
-
   return lines.join('\n').trim();
 }
 

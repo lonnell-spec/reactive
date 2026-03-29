@@ -144,6 +144,7 @@ Your Hospitality Host will text you Sunday morning with any additional details. 
 /**
  * Formats the Sunday morning hospitality host digest.
  * Pass { includePhone: true } to include guest phone numbers (Demetria's version).
+ * Gathering times are sorted chronologically (8 AM → 10:30 AM → 1 PM).
  */
 export async function formatHospitalityHostDigest(
   guests: any[],
@@ -164,7 +165,19 @@ export async function formatHospitalityHostDigest(
     byTime[time].push(guest);
   }
 
-  const sortedTimes = Object.keys(byTime).sort();
+  // Sort gathering times chronologically (not alphabetically)
+  function parseTimeToMinutes(t: string): number {
+    const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!match) return 0;
+    let h = parseInt(match[1]);
+    const m = parseInt(match[2]);
+    const isPM = match[3].toUpperCase() === 'PM';
+    if (isPM && h !== 12) h += 12;
+    if (!isPM && h === 12) h = 0;
+    return h * 60 + m;
+  }
+  const sortedTimes = Object.keys(byTime).sort((a, b) => parseTimeToMinutes(a) - parseTimeToMinutes(b));
+
   let lines: string[] = [`2819 Friends of the House — ${formattedDate}`, ''];
 
   let counter = 1;

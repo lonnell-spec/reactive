@@ -172,27 +172,57 @@ export async function notifyGuestOfApproval(guestId: string) {
   }
 }
 
-/**
- * Sends the Sunday 6 AM hospitality host digest.
- * Demetria (6782628386) receives an enhanced version that includes guest phone numbers.
- * Auto-splits into chunks if message exceeds 900 chars.
- */
-export async function sendHospitalityHostDigest(): Promise<boolean> {
-  const supabaseService = await getSupabaseServiceClient();
-  const now = new Date();
-  const etDate = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/New_York',
-    year: 'numeric', month: '2-digit', day: '2-digit'
-  }).format(now);
+function chunkMessage(msg: string, limit = 900): string[] {
+  if (msg.length <= limit) return [msg];
+  const lines = msg.split('\n');
+  const result: string[] = [];
+  let current = '';
+  for (const line of lines) {
+    const candidate = current ? current + '\n' + line : line;
+    if (candidate.length > limit && current) { result.push(current.trim()); current = line; }
+    else { current = candidate; }
+  }
+  if (current.trim()) result.push(current.trim());
+  return result;
+}
 
+async function fetchAndEnrichGuests(etDate: string) {
+  const supabaseService = await getSupabaseServiceClient();
   const { data: guests, error } = await supabaseService
     .from('guests')
     .select('id, external_guest_id, first_name, last_name, phone, gathering_time, total_guests, vehicle_type, vehicle_color, vehicle_make, vehicle_model, should_enroll_children, photo_path')
     .eq('visit_date', etDate)
     .eq('status', 'approved')
     .order('gathering_time', { ascending: true });
-
   if (error) throw new Error(`Failed to fetch guests: ${error.message}`);
+  if (!guests || guests.length === 0) return [];
+  return Promise.all(guests.map(async (guest) => {
+    let child_count = 0;
+    let photo_url: string | undefined;
+    if (guest.should_enroll_children === true) {
+      const { data: children } = await supabaseService.from('guest_children').select('id').eq('guest_id', guest.id);
+      child_count = children?.length || 0;
+    }
+    if (guest.photo_path && guest.external_guest_id) {
+      photo_url = `https://www.pamspecialguest2819.com/view/${guest.external_guest_id}/photo`;
+    }
+    return { ...guest, child_count, photo_url };
+  }));
+}
+
+/**
+ * Sends the Sunday 6 AM hospitality host digest to all hosts.
+ * Demetria gets an enhanced version with guest phone numbers.
+ * Auto-splits into chunks if message exceeds 900 chars.
+ */
+export async function sendHospitalityHostDigest(): Promise<boolean> {
+  const now = new Date();
+  const etDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(now);
+
+  const enrichedGuests = await fetchAndEnrichGuests(etDate);
 
   const hospitalityHosts = [
     '7062888390', // Ernest
@@ -206,57 +236,17 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
     '7863192765', // Jasmine Rose
   ];
 
-  if (!guests || guests.length === 0) {
+  if (enrichedGuests.length === 0) {
     const message = await formatHospitalityHostDigest([], etDate);
     for (const phone of hospitalityHosts) await sendTextMagicSMS({ phone, message });
     return true;
   }
 
-  // Enrich each guest with child count and short photo URL
-  const enrichedGuests = await Promise.all(guests.map(async (guest) => {
-    let child_count = 0;
-    let photo_url: string | undefined;
-
-    if (guest.should_enroll_children === true) {
-      const { data: children } = await supabaseService.from('guest_children').select('id').eq('guest_id', guest.id);
-      child_count = children?.length || 0;
-    }
-
-    if (guest.photo_path && guest.external_guest_id) {
-      photo_url = `https://www.pamspecialguest2819.com/view/${guest.external_guest_id}/photo`;
-    }
-
-    return { ...guest, child_count, photo_url };
-  }));
-
-  // Standard message for all hosts
-  const message = await formatHospitalityHostDigest(enrichedGuests, etDate);
-  // Enhanced message for Demetria — includes guest phone numbers
-  const messageWithPhones = await formatHospitalityHostDigest(enrichedGuests, etDate, { includePhone: true });
-
   const DEMETRIA = '6782628386';
-  const SMS_LIMIT = 900;
-
-  function chunkMessage(msg: string): string[] {
-    if (msg.length <= SMS_LIMIT) return [msg];
-    const lines = msg.split('\n');
-    const result: string[] = [];
-    let current = '';
-    for (const line of lines) {
-      const candidate = current ? current + '\n' + line : line;
-      if (candidate.length > SMS_LIMIT && current) {
-        result.push(current.trim());
-        current = line;
-      } else {
-        current = candidate;
-      }
-    }
-    if (current.trim()) result.push(current.trim());
-    return result;
-  }
-
-  const standardChunks = chunkMessage(message);
-  const demetriaChunks = chunkMessage(messageWithPhones);
+  const standardMessage = await formatHospitalityHostDigest(enrichedGuests, etDate);
+  const demetriaMessage = await formatHospitalityHostDigest(enrichedGuests, etDate, { includePhone: true });
+  const standardChunks = chunkMessage(standardMessage);
+  const demetriaChunks = chunkMessage(demetriaMessage);
 
   let successCount = 0;
   for (const phone of hospitalityHosts) {
@@ -272,5 +262,28 @@ export async function sendHospitalityHostDigest(): Promise<boolean> {
 
   console.log(`[sendHospitalityHostDigest] Sent to ${successCount}/${hospitalityHosts.length} hosts for ${etDate}`);
   if (successCount === 0) throw new Error(`TextMagic failed for all ${hospitalityHosts.length} numbers`);
+  return true;
+}
+
+/**
+ * Sends the Sunday host digest to a single phone number.
+ * Always uses the enhanced version with guest phone numbers.
+ * Used for targeted resends.
+ */
+export async function sendHospitalityHostDigestToPhone(phone: string): Promise<boolean> {
+  const now = new Date();
+  const etDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(now);
+
+  const enrichedGuests = await fetchAndEnrichGuests(etDate);
+  const message = await formatHospitalityHostDigest(enrichedGuests, etDate, { includePhone: true });
+  const chunks = chunkMessage(message);
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks.length > 1 ? `(${i + 1}/${chunks.length}) ${chunks[i]}` : chunks[i];
+    await sendTextMagicSMS({ phone, message: chunk });
+  }
   return true;
 }

@@ -9,7 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { MultiSelectCommaSeparatedDropdown } from '../../ui/multi-select-comma-separated-dropdown';
 
 // Available gathering time options
-const GATHERING_TIMES = ['08:00 AM', '10:30 AM', '01:00 PM', '07:00 PM'];
+const GATHERING_TIMES = [
+  '08:00 AM',
+  '10:30 AM',
+  '01:00 PM',
+  '07:00 PM',
+  '06:00 AM (Resurrection Sunday)',
+  '08:30 AM (Resurrection Sunday)',
+  '11:30 AM (Resurrection Sunday)',
+  '02:30 PM (Resurrection Sunday)',
+];
 
 /**
  * Visit Details section of the guest form

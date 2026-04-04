@@ -29,7 +29,7 @@ async function getPhoneNumbersByRole(role: string | string[], fallbackRole: stri
       .map(user => user.user_metadata?.phone)
       .filter((phone): phone is string => phone !== undefined && phone !== null && phone.trim().length > 0);
     // Deduplicate phone numbers
-    phoneNumbers = [...new Set(phoneNumbers)];
+    phoneNumbers = Array.from(new Set(phoneNumbers));
     if (phoneNumbers.length === 0 && fallbackRole) {
       phoneNumbers = users.users
         .filter(user => {

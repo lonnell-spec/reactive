@@ -28,6 +28,7 @@ function GuestFormInner() {
   const [error, setError] = useState('')
   const [submissionId, setSubmissionId] = useState('')
   const [turnstileToken, setTurnstileToken] = useState<string>('')
+  const [turnstileResetCount, setTurnstileResetCount] = useState(0)
   const { isAnyCompressing } = useCompression()
   
   const methods = useForm<GuestFormData>({
@@ -153,6 +154,7 @@ function GuestFormInner() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setTurnstileToken('')
+      setTurnstileResetCount(prev => prev + 1)
     } finally {
       setLoading(false)
     }
@@ -225,6 +227,7 @@ function GuestFormInner() {
                       onExpire={() => setTurnstileToken('')}
                       theme="auto"
                       size="normal"
+                      resetTrigger={turnstileResetCount}
                     />
                   </AnimatedSection>
 

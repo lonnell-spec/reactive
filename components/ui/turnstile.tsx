@@ -31,6 +31,7 @@ interface TurnstileProps {
   onExpire?: () => void
   theme?: 'light' | 'dark' | 'auto'
   size?: 'normal' | 'flexible' | 'compact'
+  resetTrigger?: number
 }
 
 export function Turnstile({
@@ -39,7 +40,8 @@ export function Turnstile({
   onError,
   onExpire,
   theme = 'auto',
-  size = 'normal'
+  size = 'normal',
+  resetTrigger = 0
 }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
@@ -137,18 +139,16 @@ export function Turnstile({
     }
   }, [siteKey, theme, size]) // Only depend on stable props, not callbacks
 
-  // Expose reset method via ref (could be extended if needed)
+  // Reset widget when resetTrigger changes (parent signals a reset is needed)
   useEffect(() => {
-    // Store reset function for parent component access if needed
-    const resetWidget = () => {
-      if (widgetIdRef.current && window.turnstile) {
+    if (resetTrigger > 0 && widgetIdRef.current && window.turnstile) {
+      try {
         window.turnstile.reset(widgetIdRef.current)
+      } catch (error) {
+        console.error('Turnstile: Failed to reset widget', error)
       }
     }
-    
-    // Can be accessed by parent if we export this
-    return () => {}
-  }, [])
+  }, [resetTrigger])
 
   return (
     <div 

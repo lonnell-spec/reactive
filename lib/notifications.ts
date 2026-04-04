@@ -6,8 +6,9 @@ import { formatApprovalMessage, formatPreApproverMessage, formatAdminApprovalMes
 import { getSupabaseServiceClient } from './supabase-client';
 import { generateDeepLinkUrl, generatePassViewUrl, generateApprovalUrl, generateDenialUrl } from './guest-credentials';
 
-async function getPhoneNumbersByRole(role: string, fallbackRole: string | undefined = undefined): Promise<string[]> {
+async function getPhoneNumbersByRole(role: string | string[], fallbackRole: string | undefined = undefined): Promise<string[]> {
   let phoneNumbers: string[] = [];
+  const roles = Array.isArray(role) ? role : [role];
   const useActualPhones = process.env.NOTIFICATION_USE_ACTUAL_PHONE_NUMBERS === 'true';
   if (useActualPhones) {
     const supabaseService = await getSupabaseServiceClient();
@@ -19,14 +20,16 @@ async function getPhoneNumbersByRole(role: string, fallbackRole: string | undefi
         const userRoles = user.user_metadata?.roles || []
         const legacyAppRole = user.app_metadata?.role
         const legacyUserRole = user.user_metadata?.role
-        return (
-          (Array.isArray(appRoles) && appRoles.includes(role)) ||
-          (Array.isArray(userRoles) && userRoles.includes(role)) ||
-          legacyAppRole === role || legacyUserRole === role
+        return roles.some(r =>
+          (Array.isArray(appRoles) && appRoles.includes(r)) ||
+          (Array.isArray(userRoles) && userRoles.includes(r)) ||
+          legacyAppRole === r || legacyUserRole === r
         )
       })
       .map(user => user.user_metadata?.phone)
       .filter((phone): phone is string => phone !== undefined && phone !== null && phone.trim().length > 0);
+    // Deduplicate phone numbers
+    phoneNumbers = [...new Set(phoneNumbers)];
     if (phoneNumbers.length === 0 && fallbackRole) {
       phoneNumbers = users.users
         .filter(user => {
@@ -92,7 +95,7 @@ export async function sendAdminApprovalNotification(guestId: string) {
     const supabaseService = await getSupabaseServiceClient();
     const { data: guest, error: guestError } = await supabaseService.from('guests').select('*').eq('id', guestId).single();
     if (guestError || !guest) throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
-    const phoneNumbers = await getPhoneNumbersByRole('admin');
+    const phoneNumbers = await getPhoneNumbersByRole(['admin', 'pre_approver']);
     if (phoneNumbers.length === 0) { console.warn(`[sendAdminApprovalNotification] No admin phones found, guestId: ${guestId}`); return false; }
     const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
     let children: { name: string; dob?: string | null }[] = [];
@@ -119,7 +122,7 @@ export async function sendAdminDenialNotification(guestId: string) {
     const supabaseService = await getSupabaseServiceClient();
     const { data: guest, error: guestError } = await supabaseService.from('guests').select('*').eq('id', guestId).single();
     if (guestError || !guest) throw new Error(`Failed to get guest information: ${guestError?.message || 'Guest not found'}`);
-    const phoneNumbers = await getPhoneNumbersByRole('admin');
+    const phoneNumbers = await getPhoneNumbersByRole(['admin', 'pre_approver']);
     if (phoneNumbers.length === 0) { console.warn(`[sendAdminDenialNotification] No admin phones found, guestId: ${guestId}`); return false; }
     const deepLinkUrl = await generateDeepLinkUrl(guest.external_guest_id);
     const message = await formatAdminDenialMessage(guest, deepLinkUrl);

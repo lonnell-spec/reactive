@@ -1,6 +1,5 @@
 import { motion } from 'motion/react';
 import Image from 'next/image';
-import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { AnimatedText } from '../AnimatedText';
 import { AnimatedSection } from '../AnimatedSection';
@@ -55,16 +54,6 @@ export const GuestFormSubmitted = ({ submissionId, autoApproved }: GuestFormSubm
                 <p className="font-mono text-lg font-bold text-black">{submissionId}</p>
               </div>
             </AnimatedSection>
-            {!autoApproved && (
-              <AnimatedSection delay={0.5}>
-                <Button 
-                  onClick={() => window.location.reload()} 
-                  className="w-full bg-red-600 hover:bg-red-700 text-white text-xl py-6"
-                >
-                  Submit Another Registration
-                </Button>
-              </AnimatedSection>
-            )}
           </CardContent>
         </Card>
       </AnimatedSection>

@@ -7,6 +7,7 @@ import { AnimatedSection } from '../AnimatedSection';
 
 interface GuestFormSubmittedProps {
   submissionId: string;
+  autoApproved?: boolean;
 }
 
 /**
@@ -14,7 +15,7 @@ interface GuestFormSubmittedProps {
  * 
  * @param submissionId The ID of the successful submission
  */
-export const GuestFormSubmitted = ({ submissionId }: GuestFormSubmittedProps) => {
+export const GuestFormSubmitted = ({ submissionId, autoApproved }: GuestFormSubmittedProps) => {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <AnimatedSection className="w-full max-w-md">
@@ -36,14 +37,16 @@ export const GuestFormSubmitted = ({ submissionId }: GuestFormSubmittedProps) =>
               />
             </motion.div>
             <AnimatedText 
-              text="Registration Submitted!"
+              text={autoApproved ? 'You\'re Approved!' : 'Registration Submitted!'}
               className="text-2xl font-bold text-red-600"
             />
           </CardHeader>
           <CardContent className="text-center space-y-6 p-8">
             <AnimatedSection delay={0.3}>
               <p className="text-black text-xl">
-                Thank you for your guest registration. You will receive a notification once your request is reviewed.
+                {autoApproved
+                  ? 'Your guest pass has been sent to your phone via text message. We look forward to seeing you!'
+                  : 'Thank you for your guest registration. You will receive a notification once your request is reviewed.'}
               </p>
             </AnimatedSection>
             <AnimatedSection delay={0.4}>
@@ -52,14 +55,16 @@ export const GuestFormSubmitted = ({ submissionId }: GuestFormSubmittedProps) =>
                 <p className="font-mono text-lg font-bold text-black">{submissionId}</p>
               </div>
             </AnimatedSection>
-            <AnimatedSection delay={0.5}>
-              <Button 
-                onClick={() => window.location.reload()} 
-                className="w-full bg-red-600 hover:bg-red-700 text-white text-xl py-6"
-              >
-                Submit Another Registration
-              </Button>
-            </AnimatedSection>
+            {!autoApproved && (
+              <AnimatedSection delay={0.5}>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  className="w-full bg-red-600 hover:bg-red-700 text-white text-xl py-6"
+                >
+                  Submit Another Registration
+                </Button>
+              </AnimatedSection>
+            )}
           </CardContent>
         </Card>
       </AnimatedSection>

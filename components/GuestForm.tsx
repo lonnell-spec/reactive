@@ -25,9 +25,10 @@ import { Turnstile } from './ui/turnstile'
 interface GuestFormInnerProps {
   inviteToken?: string
   invitedBy?: string
+  autoApprove?: boolean
 }
 
-function GuestFormInner({ inviteToken, invitedBy }: GuestFormInnerProps) {
+function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerProps) {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -124,6 +125,9 @@ function GuestFormInner({ inviteToken, invitedBy }: GuestFormInnerProps) {
       if (invitedBy) {
         formData.append('invited_by', invitedBy)
       }
+      if (autoApprove) {
+        formData.append('auto_approve', 'true')
+      }
 
       data.childrenInfo.forEach((child, index) => {
         if (child.photo) {
@@ -179,7 +183,7 @@ function GuestFormInner({ inviteToken, invitedBy }: GuestFormInnerProps) {
   }
 
   if (success) {
-    return <GuestFormSubmitted submissionId={submissionId} />
+    return <GuestFormSubmitted submissionId={submissionId} autoApproved={autoApprove} />
   }
 
   return (
@@ -313,12 +317,13 @@ function GuestFormInner({ inviteToken, invitedBy }: GuestFormInnerProps) {
 interface GuestFormProps {
   inviteToken?: string
   invitedBy?: string
+  autoApprove?: boolean
 }
 
-export function GuestForm({ inviteToken, invitedBy }: GuestFormProps = {}) {
+export function GuestForm({ inviteToken, invitedBy, autoApprove }: GuestFormProps = {}) {
   return (
     <CompressionProvider>
-      <GuestFormInner inviteToken={inviteToken} invitedBy={invitedBy} />
+      <GuestFormInner inviteToken={inviteToken} invitedBy={invitedBy} autoApprove={autoApprove} />
     </CompressionProvider>
   )
 }

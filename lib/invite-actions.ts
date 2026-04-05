@@ -42,6 +42,15 @@ export async function validateSlug(slug: string): Promise<{
 export async function generateInviteToken(slugId: string): Promise<string> {
   const supabase = await getSupabaseServiceClient()
 
+  // Expire any existing pending tokens for this slug so only one
+  // active token exists at a time. This prevents guests from forwarding
+  // the admin slug URL to generate unlimited tokens.
+  await supabase
+    .from('invites')
+    .update({ status: 'expired' })
+    .eq('invite_slug_id', slugId)
+    .eq('status', 'pending')
+
   const token = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
 
@@ -74,6 +83,7 @@ export async function validateInviteToken(token: string): Promise<{
     invite_slug_id: string
   }
   slugDisplayName?: string
+  autoApprove?: boolean
 }> {
   const supabase = await getSupabaseServiceClient()
 
@@ -81,7 +91,7 @@ export async function validateInviteToken(token: string): Promise<{
 
   const { data, error } = await supabase
     .from('invites')
-    .select('id, token, status, expires_at, invite_slug_id, invite_slugs(display_name)')
+    .select('id, token, status, expires_at, invite_slug_id, invite_slugs(display_name, auto_approve)')
     .eq('token', token)
     .eq('status', 'pending')
     .gt('expires_at', now)
@@ -91,13 +101,12 @@ export async function validateInviteToken(token: string): Promise<{
     return { valid: false }
   }
 
-  // Extract display_name from the joined invite_slugs relation
-  const slugDisplayName =
-    data.invite_slugs && !Array.isArray(data.invite_slugs)
-      ? (data.invite_slugs as { display_name: string }).display_name
-      : Array.isArray(data.invite_slugs) && data.invite_slugs.length > 0
-        ? (data.invite_slugs[0] as { display_name: string }).display_name
-        : undefined
+  // Extract display_name and auto_approve from the joined invite_slugs relation
+  const slugData = data.invite_slugs && !Array.isArray(data.invite_slugs)
+    ? (data.invite_slugs as { display_name: string; auto_approve: boolean })
+    : Array.isArray(data.invite_slugs) && data.invite_slugs.length > 0
+      ? (data.invite_slugs[0] as { display_name: string; auto_approve: boolean })
+      : undefined
 
   return {
     valid: true,
@@ -108,7 +117,8 @@ export async function validateInviteToken(token: string): Promise<{
       expires_at: data.expires_at,
       invite_slug_id: data.invite_slug_id,
     },
-    slugDisplayName,
+    slugDisplayName: slugData?.display_name,
+    autoApprove: slugData?.auto_approve ?? false,
   }
 }
 

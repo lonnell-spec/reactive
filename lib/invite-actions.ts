@@ -42,15 +42,6 @@ export async function validateSlug(slug: string): Promise<{
 export async function generateInviteToken(slugId: string): Promise<string> {
   const supabase = await getSupabaseServiceClient()
 
-  // Expire any existing pending tokens for this slug so only one
-  // active token exists at a time. This prevents guests from forwarding
-  // the admin slug URL to generate unlimited tokens.
-  await supabase
-    .from('invites')
-    .update({ status: 'expired' })
-    .eq('invite_slug_id', slugId)
-    .eq('status', 'pending')
-
   const token = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
 

@@ -12,6 +12,7 @@ import { calculateExpiryFromVisitDate } from './date-timezone-utils';
 import { generateUniqueRandom9DigitInteger } from './random-utils';
 import { validateTurnstileToken } from './turnstile';
 import { burnInviteToken } from './invite-actions';
+import { approveGuest } from './admin-actions';
 
 
 /**
@@ -98,17 +99,45 @@ export async function submitGuestForm(
 
     // Note: QR code, code_word, and pass_id will be generated only when guest is approved
 
-    await sendNotificationFn(guest.id);
-
     // Burn the invite token and link it to this guest if one was provided
     const inviteToken = formData.get('invite_token') as string | null;
     const invitedBy = formData.get('invited_by') as string | null;
+    let isAutoApproved = false;
+
     if (inviteToken) {
       await burnInviteToken(inviteToken, cleanup.guestId!);
       await supabaseService.from('guests').update({
         invite_token: inviteToken,
         invited_by: invitedBy || null,
       }).eq('id', cleanup.guestId!);
+
+      // Server-side verification: check auto_approve flag from the database
+      // Do NOT trust the form data — look up the invite token's associated slug
+      const { data: inviteData } = await supabaseService
+        .from('invites')
+        .select('invite_slug_id, invite_slugs(auto_approve, display_name)')
+        .eq('token', inviteToken)
+        .single();
+
+      if (inviteData?.invite_slugs) {
+        const slugInfo = Array.isArray(inviteData.invite_slugs)
+          ? inviteData.invite_slugs[0]
+          : inviteData.invite_slugs;
+        isAutoApproved = slugInfo?.auto_approve === true;
+      }
+    }
+
+    if (isAutoApproved) {
+      // Auto-approve: generate pass, notify guest, notify admin team
+      const approvalResult = await approveGuest(cleanup.guestId!, invitedBy || 'auto-approved');
+      if (!approvalResult.success) {
+        console.error('[submitGuestForm] Auto-approval failed:', approvalResult.message);
+        // Fall back to pre-approver notification so the guest isn't stuck
+        await sendNotificationFn(guest.id);
+      }
+    } else {
+      // Standard flow: send pre-approver notification for manual approval
+      await sendNotificationFn(guest.id);
     }
 
     // Revalidate the path to update UI
@@ -117,7 +146,9 @@ export async function submitGuestForm(
     return {
       success: true,
       submissionId: guest.external_guest_id,
-      message: 'Guest registration submitted successfully and pending approval.'
+      message: isAutoApproved
+        ? 'Guest registration approved! Check your text messages for your guest pass.'
+        : 'Guest registration submitted successfully and pending approval.'
     };
 
   } catch (error) {

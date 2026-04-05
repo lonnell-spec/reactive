@@ -22,7 +22,12 @@ import { AdditionalInformationSection } from './forms/sections/AdditionalInforma
 import { CompressionProvider, useCompression } from './forms/CompressionContext'
 import { Turnstile } from './ui/turnstile'
 
-function GuestFormInner() {
+interface GuestFormInnerProps {
+  inviteToken?: string
+  invitedBy?: string
+}
+
+function GuestFormInner({ inviteToken, invitedBy }: GuestFormInnerProps) {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -113,6 +118,13 @@ function GuestFormInner() {
       formData.append('cf-turnstile-response', turnstileToken)
       formData.append('profilePicture', data.profilePicture!)
 
+      if (inviteToken) {
+        formData.append('invite_token', inviteToken)
+      }
+      if (invitedBy) {
+        formData.append('invited_by', invitedBy)
+      }
+
       data.childrenInfo.forEach((child, index) => {
         if (child.photo) {
           formData.append(`childPhoto_${index}`, child.photo)
@@ -140,6 +152,12 @@ function GuestFormInner() {
             retryFormData.append(`childPhoto_${index}`, child.photo)
           }
         })
+        if (inviteToken) {
+          retryFormData.append('invite_token', inviteToken)
+        }
+        if (invitedBy) {
+          retryFormData.append('invited_by', invitedBy)
+        }
         formData = retryFormData
         
         result = await submitGuestForm(formData)
@@ -167,6 +185,19 @@ function GuestFormInner() {
   return (
     <div className="min-h-screen bg-white py-12 px-4 relative">
       <div className="max-w-3xl mx-auto">
+        {/* Invited-by banner */}
+        {invitedBy && (
+          <AnimatedSection className="mb-6">
+            <div className="bg-black text-white rounded-lg px-6 py-4 border-2 border-red-600 flex items-center gap-3">
+              <span className="text-red-500 text-xl">✦</span>
+              <p className="text-lg font-medium">
+                You&apos;ve been invited by{' '}
+                <span className="text-red-400 font-bold">{invitedBy}</span>
+              </p>
+            </div>
+          </AnimatedSection>
+        )}
+
         {/* Header */}
         <AnimatedSection className="text-center mb-12">
           <motion.div 
@@ -279,10 +310,15 @@ function GuestFormInner() {
   )
 }
 
-export function GuestForm() {
+interface GuestFormProps {
+  inviteToken?: string
+  invitedBy?: string
+}
+
+export function GuestForm({ inviteToken, invitedBy }: GuestFormProps = {}) {
   return (
     <CompressionProvider>
-      <GuestFormInner />
+      <GuestFormInner inviteToken={inviteToken} invitedBy={invitedBy} />
     </CompressionProvider>
   )
 }

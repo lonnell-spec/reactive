@@ -11,6 +11,7 @@ import { mapFormDataToGuestRecord, mapChildInfoToRecord, createGuestProfileUpdat
 import { calculateExpiryFromVisitDate } from './date-timezone-utils';
 import { generateUniqueRandom9DigitInteger } from './random-utils';
 import { validateTurnstileToken } from './turnstile';
+import { burnInviteToken } from './invite-actions';
 
 
 /**
@@ -98,6 +99,17 @@ export async function submitGuestForm(
     // Note: QR code, code_word, and pass_id will be generated only when guest is approved
 
     await sendNotificationFn(guest.id);
+
+    // Burn the invite token and link it to this guest if one was provided
+    const inviteToken = formData.get('invite_token') as string | null;
+    const invitedBy = formData.get('invited_by') as string | null;
+    if (inviteToken) {
+      await burnInviteToken(inviteToken, cleanup.guestId!);
+      await supabaseService.from('guests').update({
+        invite_token: inviteToken,
+        invited_by: invitedBy || null,
+      }).eq('id', cleanup.guestId!);
+    }
 
     // Revalidate the path to update UI
     revalidatePath('/');

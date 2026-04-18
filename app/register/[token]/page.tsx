@@ -1,6 +1,4 @@
-import { validateInviteToken } from '@/lib/invite-actions'
-import { GuestForm } from '@/components/GuestForm'
-import { InvalidInvitePage } from '@/components/InvalidInvitePage'
+import { RegisterPage } from '@/components/RegisterPage'
 
 interface RegisterTokenPageProps {
   params: Promise<{ token: string }>
@@ -8,24 +6,13 @@ interface RegisterTokenPageProps {
 
 /**
  * Guest registration page reached after the invite redirect.
- * Validates the one-time token and renders either the guest registration
- * form (with the token embedded) or an invalid-invite page.
+ * Passes the token to the client-side RegisterPage component,
+ * which validates once on mount and manages all state transitions
+ * client-side to prevent server re-renders from overriding the
+ * success screen after token burn.
  */
 export default async function RegisterTokenPage({ params }: RegisterTokenPageProps) {
   const { token } = await params
 
-  const result = await validateInviteToken(token)
-
-  if (!result.valid) {
-    return <InvalidInvitePage reason="invalid-token" />
-  }
-
-  return (
-    <main>
-      <GuestForm
-        inviteToken={token}
-        invitedBy={result.slugDisplayName}
-      />
-    </main>
-  )
+  return <RegisterPage token={token} />
 }

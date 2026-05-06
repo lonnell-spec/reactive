@@ -25,12 +25,15 @@ describe('Data Transformation', () => {
       hasChildrenForFormationKids: true,
       childrenInfo: [],
       carType: 'SUV',
+      numberOfCars: 1,
       vehicleColor: 'Blue',
       vehicleMake: 'Toyota',
       vehicleModel: 'Highlander',
       foodAllergies: 'None',
       specialNeeds: 'None',
       additionalNotes: 'Looking forward to visiting',
+      attendingMerch: false,
+      merchSize: undefined,
       profilePicture: new File([''], 'test.jpg', { type: 'image/jpeg' })
     };
 
@@ -47,12 +50,15 @@ describe('Data Transformation', () => {
         total_guests: '2',
         should_enroll_children: true,
         vehicle_type: 'SUV',
+        number_of_cars: 1,
         vehicle_color: 'Blue',
         vehicle_make: 'Toyota',
         vehicle_model: 'Highlander',
         food_allergies: 'None',
         special_needs: 'None',
         additional_notes: 'Looking forward to visiting',
+        attending_merch: false,
+        merch_size: null,
         status: GuestStatus.PENDING,
         expires_at: undefined,
         text_callback_reference_id: undefined

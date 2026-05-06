@@ -1,16 +1,34 @@
 /** @type {import('next').NextConfig} */
+
+// Derive the Supabase storage hostname from NEXT_PUBLIC_SUPABASE_URL so we
+// don't depend on a separate SUPABASE_STORAGE_HOSTNAME env var being set.
+// Falls back to the known prod project hostname if the URL var is missing
+// (so dev startup doesn't fail before env vars are pulled).
+function getSupabaseHostname() {
+  const fallback = 'tkgpmamrmxbctnbfdber.supabase.co';
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || `https://${fallback}`;
+    return new URL(url).hostname;
+  } catch {
+    return fallback;
+  }
+}
+
 const nextConfig = {
-  // Enable React strict mode for better development experience
   reactStrictMode: true,
-  // Support for trailing slashes in routes
   trailingSlash: false,
-  // Configure Server Actions body size limit for file uploads
+
+  // Server Actions body-size limit for file uploads
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb'
     }
   },
-  // Disable HMR for Server Actions to prevent FormData corruption
+
+  // Disable HMR file watching on the main form action — Next.js HMR was
+  // corrupting FormData submissions during dev. Pre-existing fix from the
+  // handoff doc; previously dead because of a duplicate webpack key below
+  // that has now been removed.
   webpack: (config, { dev }) => {
     if (dev) {
       config.watchOptions = {
@@ -20,24 +38,19 @@ const nextConfig = {
     }
     return config;
   },
-  // Updated images configuration with remotePatterns instead of domains
+
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: process.env.SUPABASE_STORAGE_HOSTNAME,
-        pathname: '**',
+        hostname: getSupabaseHostname(),
+        pathname: '/**',
       },
     ],
-    // Configure image qualities to prevent console warnings
     qualities: [75, 95],
   },
-  // Add empty Turbopack config to silence the warning
+
   turbopack: {},
-  // Configure webpack if needed for specific dependencies
-  webpack: (config) => {
-    return config;
-  },
 }
 
 module.exports = nextConfig;

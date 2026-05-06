@@ -3,22 +3,51 @@ import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { AnimatedSection } from '../../AnimatedSection';
 import { FormFieldError } from '../FormFieldError';
+import { Alert, AlertDescription } from '../../ui/alert';
 import { GuestFormData } from '@/lib/types';
-import { Car } from 'lucide-react';
+import { Car, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 
 /**
  * Vehicle Information section of the guest form
  */
 export const VehicleInformationSection = () => {
-  const { register, control, formState: { errors } } = useFormContext<GuestFormData>();
+  const { register, control, watch, formState: { errors } } = useFormContext<GuestFormData>();
+  const numberOfCars = Number(watch('numberOfCars')) || 1;
+  const overflowParking = numberOfCars > 2;
+
   return (
     <AnimatedSection delay={0.4} className="space-y-6">
       <h3 className="text-3xl font-bold text-black border-b-2 border-red-600 pb-3 flex items-center gap-3">
         <Car className="h-8 w-8 text-red-600" />
         Vehicle Information
       </h3>
-      
+
+      <div className="space-y-3">
+        <Label htmlFor="numberOfCars" className="text-xl">Number of Cars *</Label>
+        <Input
+          id="numberOfCars"
+          type="number"
+          min={1}
+          max={20}
+          step={1}
+          {...register('numberOfCars', { valueAsNumber: true })}
+          className={`border-2 ${errors.numberOfCars ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4 text-xl`}
+        />
+        {errors.numberOfCars && <FormFieldError message={errors.numberOfCars.message || 'Number of cars is required'} />}
+
+        {overflowParking && (
+          <Alert className="border-2 border-amber-500 bg-amber-50 mt-2">
+            <AlertCircle className="h-5 w-5 text-amber-700" />
+            <AlertDescription className="text-amber-900 text-base leading-relaxed">
+              Parties with more than 2 vehicles will park in the lot beyond the
+              main gate (look for the cones), not the X Lot. Your approval text
+              will confirm the directions.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+
       <div className="space-y-3">
         <Label htmlFor="carType" className="text-xl">Vehicle Type *</Label>
         <div className="relative" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -27,11 +56,11 @@ export const VehicleInformationSection = () => {
               name="carType"
               control={control}
               render={({ field }) => (
-                <Select 
-                  onValueChange={field.onChange} 
+                <Select
+                  onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
-                  <SelectTrigger 
+                  <SelectTrigger
                     className={`border-2 ${errors.carType ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-red-600'} py-4 text-xl`}
                   >
                     <SelectValue placeholder="Select vehicle type" />

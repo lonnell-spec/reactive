@@ -193,7 +193,7 @@ async function fetchAndEnrichGuests(etDate: string) {
   const supabaseService = await getSupabaseServiceClient();
   const { data: guests, error } = await supabaseService
     .from('guests')
-    .select('id, external_guest_id, first_name, last_name, phone, gathering_time, total_guests, vehicle_type, vehicle_color, vehicle_make, vehicle_model, should_enroll_children, photo_path')
+    .select('id, external_guest_id, first_name, last_name, phone, gathering_time, total_guests, vehicle_type, vehicle_color, vehicle_make, vehicle_model, should_enroll_children, photo_path, attending_merch, merch_size')
     .eq('visit_date', etDate)
     .eq('status', 'approved')
     .order('gathering_time', { ascending: true });

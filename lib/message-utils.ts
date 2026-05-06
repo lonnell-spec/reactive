@@ -77,6 +77,10 @@ export async function formatAdminApprovalMessage(
     });
     kidsSection += '\n' + childLines.join('\n');
   }
+  const attendingMerch = guest.attending_merch === true;
+  const merchLine = attendingMerch
+    ? `Merch: Yes${guest.merch_size ? ` (${guest.merch_size})` : ''}`
+    : `Merch: No`;
   const photoLine = options?.photoUrl ? `\nGuest photo: ${options.photoUrl}` : '';
   return `
 APPROVED - Friends of the House
@@ -85,7 +89,8 @@ Visit: ${formattedDate} @ ${guest.gathering_time}
 Party of: ${guest.total_guests}
 Phone: ${guest.phone || 'Not provided'}
 Vehicle: ${vehicleLine}
-${kidsSection}${photoLine}
+${kidsSection}
+${merchLine}${photoLine}
 
 View full record: ${deepLinkUrl}
 `.trim();
@@ -120,6 +125,19 @@ export async function formatApprovalMessage(
     throw new Error('Guest information and pass URL are required');
   }
   const formattedDate = await formatDateString(guest.visit_date);
+
+  // Parking directions branch on (a) which slug minted the invite and
+  // (b) how many vehicles the party is bringing.
+  //   - PAM slug → always X Lot, regardless of car count
+  //   - Lonnell / FotH / admin-generated bound (no slug) →
+  //       cones lot if cars > 2, otherwise X Lot
+  const isPamSlug = guest.invited_via_slug === 'pam';
+  const carCount = typeof guest.number_of_cars === 'number' ? guest.number_of_cars : 1;
+  const useConesLot = !isPamSlug && carCount > 2;
+  const parkingLine = useConesLot
+    ? '- Park in the lot beyond the main gate — look for the cones (additional vehicle overflow)'
+    : '- You will park in X Lot';
+
   return `
 Your registration has been approved.
 You are a Friend of the House.
@@ -133,7 +151,7 @@ Arrival Instructions:
 - Arrive 25 minutes before The Gathering
 - At the security gate, turn on your flashers
 - Tell the host: "I am a Friend of the House"
-- You will park in X Lot
+${parkingLine}
 
 Your pass: ${passUrl}
 
@@ -195,12 +213,18 @@ export async function formatHospitalityHostDigest(
         ? `Formation Kids: Yes (${kidCount} child${kidCount !== 1 ? 'ren' : ''})`
         : `Formation Kids: No`;
 
+      const attendingMerch = guest.attending_merch === true;
+      const merchLine = attendingMerch
+        ? `Merch: Yes${guest.merch_size ? ` (${guest.merch_size})` : ''}`
+        : null;  // hide when not attending — keeps digest tight
+
       const photoLine = guest.photo_url ? `Photo: ${guest.photo_url}` : null;
       const phoneLine = includePhone && guest.phone ? `Phone: ${guest.phone}` : null;
 
       lines.push(`${counter}. ${guest.first_name} ${guest.last_name} | Party of ${guest.total_guests} | ${vehicle}`);
       if (phoneLine) lines.push(`   ${phoneLine}`);
       lines.push(`   ${kidsLine}`);
+      if (merchLine) lines.push(`   ${merchLine}`);
       if (photoLine) lines.push(`   ${photoLine}`);
       counter++;
     }

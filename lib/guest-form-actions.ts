@@ -106,25 +106,32 @@ export async function submitGuestForm(
 
     if (inviteToken) {
       await burnInviteToken(inviteToken, cleanup.guestId!);
-      await supabaseService.from('guests').update({
-        invite_token: inviteToken,
-        invited_by: invitedBy || null,
-      }).eq('id', cleanup.guestId!);
 
-      // Server-side verification: check auto_approve flag from the database
-      // Do NOT trust the form data — look up the invite token's associated slug
+      // Server-side verification: pull auto_approve + slug name from the
+      // database (do NOT trust form data). The slug name (`pam`, `lonnell`,
+      // `friendofthehouse`) is denormalized onto the guest via
+      // invited_via_slug so the approval SMS can branch parking
+      // directions without re-joining at notification time.
       const { data: inviteData } = await supabaseService
         .from('invites')
-        .select('invite_slug_id, invite_slugs(auto_approve, display_name)')
+        .select('invite_slug_id, invite_slugs(slug, auto_approve, display_name)')
         .eq('token', inviteToken)
         .single();
 
+      let invitedViaSlug: string | null = null;
       if (inviteData?.invite_slugs) {
         const slugInfo = Array.isArray(inviteData.invite_slugs)
           ? inviteData.invite_slugs[0]
           : inviteData.invite_slugs;
         isAutoApproved = slugInfo?.auto_approve === true;
+        invitedViaSlug = slugInfo?.slug ?? null;
       }
+
+      await supabaseService.from('guests').update({
+        invite_token: inviteToken,
+        invited_by: invitedBy || null,
+        invited_via_slug: invitedViaSlug,
+      }).eq('id', cleanup.guestId!);
     }
 
     if (isAutoApproved) {
@@ -330,6 +337,7 @@ async function parseAndValidate(formData: FormData): Promise<GuestFormData> {
     hasChildrenForFormationKids: textData.hasChildrenForFormationKids || false,
     childrenInfo: childrenWithPhoto,
     carType: textData.carType || '',
+    numberOfCars: textData.numberOfCars ?? 1,
     vehicleColor: textData.vehicleColor || '',
     vehicleMake: textData.vehicleMake || '',
     vehicleModel: textData.vehicleModel || '',

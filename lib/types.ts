@@ -70,12 +70,18 @@ export const guestFormSchema = z.object({
   hasChildrenForFormationKids: z.boolean().default(false),
   childrenInfo: z.array(childInfoSchema).default([]),
   carType: z.string().min(1, 'Vehicle type is required'),
+  // numberOfCars triggers a different parking message when > 2 (and the
+  // guest's invite did not come from the PAM slug). 1-20 sanity bound
+  // mirrors the DB check constraint.
+  numberOfCars: z.coerce.number().int().min(1, 'At least 1 vehicle').max(20, 'Too many vehicles').default(1),
   vehicleColor: z.string().optional(),
   vehicleMake: z.string().optional(),
   vehicleModel: z.string().optional(),
   foodAllergies: z.string().optional(),
   specialNeeds: z.string().optional(),
   additionalNotes: z.string().optional(),
+  attendingMerch: z.boolean().default(false),
+  merchSize: z.string().optional(),
   profilePicture: imageFileValidation
 });
 

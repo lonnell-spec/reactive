@@ -26,12 +26,17 @@ export async function mapFormDataToGuestRecord(
     total_guests: parsedData.totalGuests,
     should_enroll_children: parsedData.hasChildrenForFormationKids,
     vehicle_type: parsedData.carType,
+    number_of_cars: parsedData.numberOfCars ?? 1,
     vehicle_color: parsedData.vehicleColor,
     vehicle_make: parsedData.vehicleMake,
     vehicle_model: parsedData.vehicleModel,
     food_allergies: parsedData.foodAllergies,
     special_needs: parsedData.specialNeeds,
     additional_notes: parsedData.additionalNotes,
+    attending_merch: parsedData.attendingMerch ?? false,
+    // merch_size only persists when the guest opted in — guards against
+    // stale form state if they checked then unchecked the merch box.
+    merch_size: (parsedData.attendingMerch && parsedData.merchSize) ? parsedData.merchSize : null,
     status: GuestStatus.PENDING,
     expires_at: expiresAt,
     text_callback_reference_id: textCallbackReferenceId

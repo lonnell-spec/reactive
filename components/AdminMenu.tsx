@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
-import { Menu, X, Users, Search, Shield, Home, User } from 'lucide-react'
+import { Menu, X, Users, Search, Shield, Home, User, Send } from 'lucide-react'
 
 interface AdminMenuProps {
   currentPath?: string
@@ -28,6 +28,13 @@ export function AdminMenu({ currentPath }: AdminMenuProps) {
       icon: Search,
       path: '/admin/manual-verification',
       color: 'bg-green-600 hover:bg-green-700'
+    },
+    {
+      title: 'Generate Invite Link',
+      description: 'Create a recipient-bound invite link',
+      icon: Send,
+      path: '/admin/generate',
+      color: 'bg-red-600 hover:bg-red-700'
     },
     {
       title: 'User Management',

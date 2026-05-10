@@ -25,10 +25,11 @@ import { Turnstile } from './ui/turnstile'
 interface GuestFormInnerProps {
   inviteToken?: string
   invitedBy?: string
+  inviteSlug?: string
   autoApprove?: boolean
 }
 
-function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerProps) {
+function GuestFormInner({ inviteToken, invitedBy, inviteSlug, autoApprove }: GuestFormInnerProps) {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -36,7 +37,7 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
   const [turnstileToken, setTurnstileToken] = useState<string>('')
   const [turnstileResetCount, setTurnstileResetCount] = useState(0)
   const { isAnyCompressing } = useCompression()
-  
+
   const methods = useForm<GuestFormData>({
     resolver: zodResolver(guestFormSchema) as any,
     defaultValues: {
@@ -69,14 +70,14 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
       setError('Please complete the verification challenge before submitting.')
       return
     }
-    
+
     if (data.profilePicture) {
       if (!(data.profilePicture instanceof File) || data.profilePicture.size === 0) {
         setError('Profile picture is invalid. Please try uploading again.')
         return
       }
     }
-    
+
     data.childrenInfo.forEach((child, index) => {
       if (child.photo) {
         if (!(child.photo instanceof File) || child.photo.size === 0) {
@@ -85,13 +86,13 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
         }
       }
     })
-    
+
     setLoading(true)
     setError('')
-    
+
     try {
       let formData = new FormData()
-      
+
       const textData = {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -114,7 +115,7 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
         specialNeeds: data.specialNeeds || '',
         additionalNotes: data.additionalNotes || ''
       }
-      
+
       formData.append('formData', JSON.stringify(textData))
       formData.append('cf-turnstile-response', turnstileToken)
       formData.append('profilePicture', data.profilePicture!)
@@ -143,11 +144,11 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
       let result = await submitGuestForm(formData)
       let retryCount = 0
       const maxRetries = 2
-      
+
       while (!result.success && result.message?.includes('empty FormData') && retryCount < maxRetries) {
         retryCount++
         await new Promise(resolve => setTimeout(resolve, 500))
-        
+
         const retryFormData = new FormData()
         retryFormData.append('formData', JSON.stringify(textData))
         retryFormData.append('profilePicture', data.profilePicture!)
@@ -163,7 +164,7 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
           retryFormData.append('invited_by', invitedBy)
         }
         formData = retryFormData
-        
+
         result = await submitGuestForm(formData)
       }
 
@@ -195,7 +196,7 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
             <div className="bg-black text-white rounded-lg px-6 py-4 border-2 border-red-600 flex items-center gap-3">
               <span className="text-red-500 text-xl">✦</span>
               <p className="text-lg font-medium">
-                You&apos;ve been invited by{' '}
+                Invited by{' '}
                 <span className="text-red-400 font-bold">{invitedBy}</span>
               </p>
             </div>
@@ -204,22 +205,22 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
 
         {/* Header */}
         <AnimatedSection className="text-center mb-12">
-          <motion.div 
+          <motion.div
             className="relative h-24 w-full mx-auto mb-6"
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <Image 
+            <Image
               src="/church-logo.png"
-              alt="Church Logo" 
+              alt="Church Logo"
               width={96}
               height={96}
               style={{ objectFit: 'contain', margin: '0 auto' }}
               className="h-24 w-auto"
             />
           </motion.div>
-          <AnimatedText 
+          <AnimatedText
             text="Friends of the House Registration"
             className="text-3xl text-gray-600 font-bold"
             delay={0.5}
@@ -239,7 +240,7 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
         <AnimatedSection delay={0.3}>
           <Card className="border-2 border-black shadow-2xl">
             <CardHeader className="bg-black text-white">
-              <AnimatedText 
+              <AnimatedText
                 text="Guest Information"
                 className="text-3xl font-bold"
               />
@@ -250,7 +251,7 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
                   <PersonalInformationSection />
                   <VisitDetailsSection />
                   <ChildrenInformationSection />
-                  <VehicleInformationSection />
+                  <VehicleInformationSection inviteSlug={inviteSlug} />
                   <AdditionalInformationSection />
 
                   {/* Turnstile verification widget */}
@@ -271,8 +272,8 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         className="w-full bg-red-600 hover:bg-red-700 text-white text-2xl py-8 border-2 border-red-800 shadow-lg text-[20px]"
                         disabled={loading || isAnyCompressing || !turnstileToken}
                       >
@@ -317,13 +318,14 @@ function GuestFormInner({ inviteToken, invitedBy, autoApprove }: GuestFormInnerP
 interface GuestFormProps {
   inviteToken?: string
   invitedBy?: string
+  inviteSlug?: string
   autoApprove?: boolean
 }
 
-export function GuestForm({ inviteToken, invitedBy, autoApprove }: GuestFormProps = {}) {
+export function GuestForm({ inviteToken, invitedBy, inviteSlug, autoApprove }: GuestFormProps = {}) {
   return (
     <CompressionProvider>
-      <GuestFormInner inviteToken={inviteToken} invitedBy={invitedBy} autoApprove={autoApprove} />
+      <GuestFormInner inviteToken={inviteToken} invitedBy={invitedBy} inviteSlug={inviteSlug} autoApprove={autoApprove} />
     </CompressionProvider>
   )
 }

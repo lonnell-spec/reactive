@@ -18,6 +18,7 @@ interface RegisterPageProps {
 export function RegisterPage({ token }: RegisterPageProps) {
   const [state, setState] = useState<'loading' | 'valid' | 'invalid'>('loading')
   const [invitedBy, setInvitedBy] = useState<string | undefined>()
+  const [inviteSlug, setInviteSlug] = useState<string | undefined>()
   const [autoApprove, setAutoApprove] = useState(false)
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export function RegisterPage({ token }: RegisterPageProps) {
 
       if (result.valid) {
         setInvitedBy(result.slugDisplayName)
+        setInviteSlug(result.slugName)
         setAutoApprove(result.autoApprove ?? false)
         setState('valid')
       } else {
@@ -60,6 +62,7 @@ export function RegisterPage({ token }: RegisterPageProps) {
       <GuestForm
         inviteToken={token}
         invitedBy={invitedBy}
+        inviteSlug={inviteSlug}
         autoApprove={autoApprove}
       />
     </main>

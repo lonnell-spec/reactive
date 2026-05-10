@@ -81,6 +81,7 @@ export async function validateInviteToken(token: string): Promise<{
     expires_at: string
     invite_slug_id: string | null
   }
+  slugName?: string
   slugDisplayName?: string
   autoApprove?: boolean
 }> {
@@ -90,7 +91,7 @@ export async function validateInviteToken(token: string): Promise<{
 
   const { data, error } = await supabase
     .from('invites')
-    .select('id, token, status, expires_at, invite_slug_id, invite_slugs(display_name, auto_approve)')
+    .select('id, token, status, expires_at, invite_slug_id, invite_slugs(slug, display_name, auto_approve)')
     .eq('token', token)
     .eq('status', 'pending')
     .gt('expires_at', now)
@@ -100,11 +101,13 @@ export async function validateInviteToken(token: string): Promise<{
     return { valid: false }
   }
 
-  // Extract display_name and auto_approve from the joined invite_slugs relation
+  // Extract slug short-name (e.g. 'pam'), display_name and auto_approve
+  // from the joined invite_slugs relation. Slug name is needed for
+  // per-slug UI branching (e.g. PAM-exempt parking notice).
   const slugData = data.invite_slugs && !Array.isArray(data.invite_slugs)
-    ? (data.invite_slugs as { display_name: string; auto_approve: boolean })
+    ? (data.invite_slugs as { slug: string; display_name: string; auto_approve: boolean })
     : Array.isArray(data.invite_slugs) && data.invite_slugs.length > 0
-      ? (data.invite_slugs[0] as { display_name: string; auto_approve: boolean })
+      ? (data.invite_slugs[0] as { slug: string; display_name: string; auto_approve: boolean })
       : undefined
 
   return {
@@ -116,6 +119,7 @@ export async function validateInviteToken(token: string): Promise<{
       expires_at: data.expires_at,
       invite_slug_id: data.invite_slug_id,
     },
+    slugName: slugData?.slug,
     slugDisplayName: slugData?.display_name,
     autoApprove: slugData?.auto_approve ?? false,
   }

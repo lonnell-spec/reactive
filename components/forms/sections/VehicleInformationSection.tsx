@@ -5,16 +5,27 @@ import { AnimatedSection } from '../../AnimatedSection';
 import { FormFieldError } from '../FormFieldError';
 import { Alert, AlertDescription } from '../../ui/alert';
 import { GuestFormData } from '@/lib/types';
-import { Car, AlertCircle } from 'lucide-react';
+import { Car } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
+
+interface VehicleInformationSectionProps {
+  /**
+   * Slug short-name (e.g. 'pam', 'lonnell', 'friendofthehouse') of the
+   * invite that brought this guest, if any. When 'pam', the cars > 2
+   * cones-lot notice is suppressed because PAM-minted guests always
+   * park in X Lot regardless of car count.
+   */
+  inviteSlug?: string;
+}
 
 /**
  * Vehicle Information section of the guest form
  */
-export const VehicleInformationSection = () => {
+export const VehicleInformationSection = ({ inviteSlug }: VehicleInformationSectionProps = {}) => {
   const { register, control, watch, formState: { errors } } = useFormContext<GuestFormData>();
   const numberOfCars = Number(watch('numberOfCars')) || 1;
-  const overflowParking = numberOfCars > 2;
+  const isPamSlug = inviteSlug === 'pam';
+  const showOverflowNotice = numberOfCars > 2 && !isPamSlug;
 
   return (
     <AnimatedSection delay={0.4} className="space-y-6">
@@ -36,9 +47,8 @@ export const VehicleInformationSection = () => {
         />
         {errors.numberOfCars && <FormFieldError message={errors.numberOfCars.message || 'Number of cars is required'} />}
 
-        {overflowParking && (
+        {showOverflowNotice && (
           <Alert className="border-2 border-amber-500 bg-amber-50 mt-2">
-            <AlertCircle className="h-5 w-5 text-amber-700" />
             <AlertDescription className="text-amber-900 text-base leading-relaxed">
               Parties with more than 2 vehicles will park in the lot beyond the
               main gate (look for the cones), not the X Lot. Your approval text

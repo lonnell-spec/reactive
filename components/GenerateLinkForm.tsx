@@ -227,7 +227,7 @@ export function GenerateLinkForm({ user }: GenerateLinkFormProps) {
             </Label>
             <Input
               id="recipient_name"
-              placeholder="e.g. Bryan Tanaka"
+              placeholder="First and Last Name"
               {...register('recipient_name')}
               disabled={submitting}
             />
